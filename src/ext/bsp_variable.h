@@ -29,7 +29,7 @@
  */
 
 /**
- * Variables definations header
+ * Variables miscellaneous header
  *
  * @package bsp::blacktail
  * @author Dr.NP <np@bsgroup.org>
@@ -50,5 +50,41 @@
 /* Structs */
 
 /* Functions */
+/**
+ * Get randomize data from device
+ *
+ * @param string data Data will fill to here
+ * @param size_t len Bytes of data to get
+ */
+BSP_DECLARE(void) bsp_rand(char *data, size_t len);
+
+/**
+ * Log2() (Table search method)
+ *
+ * @param int v Input value
+ *
+ * @return int Return value
+ */
+BSP_DECLARE(int) bsp_log2(int v);
+
+/**
+ * Escape character
+ *
+ * @param uchar c Character to escape
+ *
+ * @return string Escaped
+ */
+BSP_DECLARE(const char *) bsp_escape_char(unsigned char c);
+
+/**
+ * Calculate value of an UTF-8 input
+ *
+ * @param string data Input data
+ * @param ssize_t len Length of data
+ * @param int size Length of UTF-8 character
+ *
+ * @return int UTF-8 value
+ */
+BSP_DECLARE(int) bsp_utf8_value(const char *data, ssize_t len, int *size);
 
 #endif  /* _EXT_BSP_VARIABLE_H */

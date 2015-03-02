@@ -47,14 +47,15 @@
 typedef struct bsp_buffer_t
 {
     char                *data;
-    size_t              len;            // Buffer length
+    size_t              size;            // Buffer length
     size_t              data_len;       // Data length
     size_t              cursor;
+    BSP_BOOLEAN         is_const;
 } BSP_BUFFER;
 
 /* Macros */
 #define B_DATA(b)                       b->data
-#define B_SIZE(b)                       b->len
+#define B_SIZE(b)                       b->size
 #define B_LEN(b)                        b->data_len
 #define B_NOW(b)                        b->cursor
 #define B_NEXT(b)                       b->cursor ++
@@ -63,6 +64,7 @@ typedef struct bsp_buffer_t
 #define B_RESET(b)                      b->cursor = 0
 #define B_AVAIL(b)                      (b->len - b->cursor)
 #define B_CURR(b)                       (b->data + b->cursor)
+#define B_ISCONST(b)                    (BSP_TRUE == b->is_const)
 
 /* Structs */
 
@@ -84,11 +86,22 @@ BSP_DECLARE(BSP_BUFFER *) bsp_new_buffer();
 BSP_DECLARE(void) bsp_del_buffer(BSP_BUFFER *b);
 
 /**
+ * Set an empty buffer const data, after set, buffer will be set to const mode
+ *
+ * @param BSP_BUFFER b Empty buffer
+ * @param string data Data
+ * @param ssize_t len Length of data
+ *
+ * @return size_t Data appended
+ */
+BSP_DECLARE(size_t) bsp_buffer_set_const(BSP_BUFFER *b, const char *data, ssize_t len);
+
+/**
  * Append data to buffer
  *
  * @param BSP_BUFFER b Buffer to append
  * @param string data Data
- * @param size_t len Length of data
+ * @param ssize_t len Length of data
  *
  * @return size_t Data appended
  */

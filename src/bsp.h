@@ -160,12 +160,17 @@ typedef enum bsp_fd_e
 #include "core/bsp_event.h"
 #include "core/bsp_thread.h"
 #include "core/bsp_mempool.h"
+
 #include "ext/bsp_variable.h"
 #include "ext/bsp_buffer.h"
 #include "ext/bsp_hash.h"
+
 #include "net/bsp_socket.h"
-#include "utils/bsp_object.h"
+
 #include "utils/bsp_string.h"
+#include "utils/bsp_value.h"
+#include "utils/bsp_object.h"
+
 #include "core/bsp_bootstrap.h"
 
 /* Definations */

@@ -103,12 +103,12 @@ void _buffer_free(void *item)
     BSP_BUFFER *b = (BSP_BUFFER *) item;
     if (b)
     {
-        if (b->data)
+        if (B_DATA(b) && !B_ISCONST(b))
         {
-            bsp_free(b->data);
+            bsp_free(B_DATA(b));
         }
 
-        bsp_free(b->data);
+        bsp_free(b);
     }
 
     return;
@@ -133,19 +133,22 @@ BSP_DECLARE(void) bsp_del_buffer(BSP_BUFFER *b)
 {
     if (b)
     {
-        if (_BSP_BUFFER_HIGHWATER < b->len)
+        if (!B_ISCONST(b))
         {
-            // Buffer too big, just clean
-            bsp_free(b->data);
-            b->data = NULL;
-            b->data_len = 0;
-            b->len = 0;
-            b->cursor = 0;
-        }
+            if (_BSP_BUFFER_HIGHWATER < B_SIZE(b))
+            {
+                // Buffer too big, just clean
+                bsp_free(B_DATA(b));
+                B_DATA(b) = NULL;
+                B_SIZE(b) = 0;
+                B_LEN(b) = 0;
+                B_NOW(b) = 0;
+            }
 
-        if (_BSP_BUFFER_UNSATURATION < (b->len - b->data_len))
-        {
-            _shrink_buffer(b);
+            if (_BSP_BUFFER_UNSATURATION < (B_SIZE(b) - B_LEN(b)))
+            {
+                _shrink_buffer(b);
+            }
         }
 
         bsp_mempool_free(mp_buffer, (void *) b);
@@ -154,10 +157,32 @@ BSP_DECLARE(void) bsp_del_buffer(BSP_BUFFER *b)
     return;
 }
 
+// Set const data to en empty buffer
+BSP_DECLARE(size_t) bsp_buffer_set_const(BSP_BUFFER *b, const char *data, ssize_t len)
+{
+    if (!b || !data || B_DATA(b) || B_ISCONST(b))
+    {
+        return 0;
+    }
+
+    if (len < 0)
+    {
+        len = strnlen(data, _BSP_MAX_UNSIZED_STRLEN);
+    }
+
+    B_DATA(b) = (char *) data;
+    B_SIZE(b) = 0;
+    B_LEN(b) = len;
+
+    // Set to const
+    b->is_const = BSP_TRUE;
+
+    return len;
+}
 // Append data to buffer
 BSP_DECLARE(size_t) bsp_buffer_append(BSP_BUFFER *b, const char *data, ssize_t len)
 {
-    if (!b || !data)
+    if (!b || !data || B_ISCONST(b))
     {
         return 0;
     }
