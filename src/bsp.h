@@ -1,0 +1,216 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 4; tab-width: 4 -*-  */
+/*
+ * bsp.h
+ * Copyright (C) 2015 Dr.NP <np@bsgroup.org>
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name ``Dr.NP'' nor the name of any other
+ *    contributor may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ * 
+ * BlackTail IS PROVIDED BY Dr.NP ``AS IS'' AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL Dr.NP OR ANY OTHER CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/**
+ * Main header of BlackTail
+ * 
+ * @package bsp::blacktail
+ * @author Dr.NP <np@bsgroup.org>
+ * @update 02/09/2015
+ * @changelog
+ *      [02/09/2015] - Creation
+ */
+
+#ifndef _BSP_H
+
+#define _BSP_H
+
+// eneral
+#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150301-dev"
+#define BSP_PACKAGE_NAME                "BSP::BlackTail"
+#define BSP_DECLARE(type)               type
+#define BSP_PRIVATE(type)               static type
+
+// System headers
+#include <ctype.h>
+#include <errno.h>
+#include <error.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
+#if HAVE_MALLOC_H
+    #include <malloc.h>
+#elif HAVE_SYS_MALLOC_H
+    #include <sys/malloc.h>
+#elif HAVE_MALLOC_MALLOC_H
+    #include <malloc/malloc.h>
+#endif
+#if HAVE_MATH_H
+    #include <math.h>
+#endif
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <netdb.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/sysinfo.h>
+#include <sys/types.h>
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+#include <sys/timerfd.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <arpa/inet.h>
+
+// Boolean
+typedef enum bsp_boolean_e
+{
+    BSP_TRUE            = 1,
+#define BSP_TRUE                        BSP_TRUE
+    BSP_FALSE           = 0
+#define BSP_FALSE                       BSP_FALSE
+} BSP_BOOLEAN;
+
+// File descriptor type
+typedef enum bsp_fd_e
+{
+    BSP_FD_ANY          = 0x0, 
+#define BSP_FD_ANY                      BSP_FD_ANY
+    BSP_FD_GENERAL      = 0x1, 
+#define BSP_FD_GENERAL                  BSP_FD_GENERAL
+    BSP_FD_PIPE         = 0x2, 
+#define BSP_FD_PIPE                     BSP_FD_PIPE
+    BSP_FD_EPOLL        = 0x3, 
+#define BSP_FD_EPOLL                    BSP_FD_EPOLL
+    BSP_FD_KQUEUE       = 0x4, 
+#define BSP_FD_KQUEUE                   BSP_FD_KQUEUE
+    BSP_FD_EVENT        = 0x11, 
+#define BSP_FD_EVENT                    BSP_FD_EVENT
+    BSP_FD_SIGNAL       = 0x12, 
+#define BSP_FD_SIGNAL                   BSP_FD_SIGNAL
+    BSP_FD_TIMER        = 0x13, 
+#define BSP_FD_TIMER                    BSP_FD_TIMER
+    BSP_FD_SOCKET_SERVER
+                        = 0x21, 
+#define BSP_FD_SOCKET_SERVER            BSP_FD_SOCKET_SERVER
+    BSP_FD_SOCKET_CLIENT
+                        = 0x22, 
+#define BSP_FD_SOCKET_CLIENT            BSP_FD_SOCKET_CLIENT
+    BSP_FD_SOCKET_CONNECTOR
+                        = 0x23, 
+#define BSP_FD_SOCKET_CONNECTOR         BSP_FD_SOCKET_CONNECTOR
+    BSP_FD_SOCKET_GENERAL
+                        = 0x2F, 
+#define BSP_FD_SOCKET_GENERAL           BSP_FD_SOCKET_GENERAL
+    BSP_FD_SHM          = 0xF1, 
+#define BSP_FD_SHM                      BSP_FD_SHM
+    BSP_FD_EXIT         = 0xFE, 
+#define BSP_FD_EXIT                     BSP_FD_EXIT
+    BSP_FD_UNKNOWN      = 0xFF
+#define BSP_FD_UNKNOWN                  BSP_FD_UNKNOWN
+} BSP_FD_TYPE;
+
+// Spinlock
+#ifdef ENABLE_BSP_SPINLOCK
+    #include "core/bsp_tinyspin.h"
+    typedef struct bsp_tiny_spinlock_t  BSP_SPINLOCK;
+    #define BSP_SPINLOCK_INITIALIZER    {._lock = _SPIN_FREE, ._loop_times = 0}
+    #define bsp_spin_init(lock)         bsp_tiny_spin_init(lock)
+    #define bsp_spin_lock(lock)         bsp_tiny_spin_lock(lock)
+    #define bsp_spin_unlock(lock)       bsp_tiny_spin_unlock(lock)
+    #define BSP_spin_destroy(lock)      bsp_tiny_spin_destroy(lock)
+#else
+    #include <pthread.h>
+    typedef pthread_spinlock_t          BSP_SPINLOCK;
+    #define BSP_SPINLOCK_INITIALIZER    1
+    #define bsp_spin_init(lock)         pthread_spin_init(lock, 0)
+    #define bsp_spin_lock(lock)         pthread_spin_lock(lock)
+    #define bsp_spin_unlock(lock)       pthread_spin_unlock(lock)
+    #define bsp_spin_destroy            pthread_spin_destroy(lock)
+#endif
+
+// Headers
+#include "core/bsp_debug.h"
+#include "core/bsp_event.h"
+#include "core/bsp_thread.h"
+#include "core/bsp_mempool.h"
+#include "ext/bsp_variable.h"
+#include "ext/bsp_buffer.h"
+#include "ext/bsp_hash.h"
+#include "net/bsp_socket.h"
+#include "utils/bsp_object.h"
+#include "utils/bsp_string.h"
+#include "core/bsp_bootstrap.h"
+
+/* Definations */
+
+// Return values
+#define BSP_RTN_SUCCESS                 0
+#define BSP_RTN_INVALID                 1
+#define BSP_RTN_FATAL                   255
+
+#define BSP_RTN_ERR_GENERAL             -1
+#define BSP_RTN_ERR_UNKNOWN             -127
+#define BSP_RTN_ERR_MEMORY              -126
+#define BSP_RTN_ERR_THREAD              -125
+
+#define BSP_RTN_ERR_IO_ROUGH            -10
+#define BSP_RTN_ERR_IO_OPEN             -11
+#define BSP_RTN_ERR_IO_READ             -12
+#define BSP_RTN_ERR_IO_WRITE            -13
+#define BSP_RTN_ERR_IO_BLOCK            -14
+
+#define BSP_RTN_ERR_EVENT_ROUGH         -20
+#define BSP_RTN_ERR_EVENT_SELECT        -21
+#define BSP_RTN_ERR_EVENT_EPOLL         -22
+#define BSP_RTN_ERR_EVENT_KQUEUE        -23
+#define BSP_RTN_ERR_EVENT_EFD           -25
+#define BSP_RTN_ERR_EVENT_TFD           -26
+#define BSP_RTN_ERR_EVENT_SFD           -27
+
+#define BSP_RTN_ERR_SOCKET_ROUGH        -30
+#define BSP_RTN_ERR_SOCKET_OPEN         -31
+#define BSP_RTN_ERR_SOCKET_BIND         -32
+#define BSP_RTN_ERR_SOCKET_LISTEN       -33
+#define BSP_RTN_ERR_SOCKET_ACCEPT       -34
+#define BSP_RTN_ERR_SOCKET_CONNECT      -35
+
+/* Macros */
+// Allocator
+#define bsp_malloc(size)                malloc(size)
+#define bsp_calloc(nmemb, size)         calloc(nmemb, size)
+#define bsp_realloc(ptr, size)          realloc(ptr, size)
+#define bsp_free(ptr)                   free(ptr)
+#define bsp_malloc_usable_size(ptr)     malloc_usable_size(ptr)
+
+/* Structs */
+
+/* Functions */
+
+#endif  /* _BSP_H */

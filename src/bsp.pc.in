@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+datarootdir=@datarootdir@
+datadir=@datadir@
+includedir=@includedir@/bsp
+
+Name: libbsp
+Description: BS.Play runtime library [BlackTail]
+Version: @VERSION@
+Requires: 
+Libs: -L${libdir} -lbsp
+Cflags: -I${includedir}
