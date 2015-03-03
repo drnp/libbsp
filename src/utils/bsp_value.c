@@ -41,7 +41,26 @@
 #include "bsp-private.h"
 #include "bsp.h"
 
-BSP_MEMPOOL *mp_value = NULL;
+BSP_PRIVATE(BSP_MEMPOOL *) mp_value = NULL;
+BSP_PRIVATE(const char *) _tag_ = "Value";
+
+// Initialization. Create mempool
+BSP_DECLARE(int) bsp_value_init()
+{
+    if (mp_value)
+    {
+        return BSP_RTN_SUCCESS;
+    }
+
+    mp_string = bsp_new_mempool(sizeof(BSP_VALUE), NULL, NULL);
+    if (!mp_value)
+    {
+        bsp_trace_message(BSP_TRACE_ALERT, _tag_, "Cannot create value pool");
+        return BSP_RTN_ERR_MEMORY;
+    }
+
+    return BSP_RTN_SUCCESS;
+}
 
 // Generate a new value
 BSP_DECLARE(BSP_VALUE *) bsp_new_value()
@@ -56,6 +75,16 @@ BSP_DECLARE(void) bsp_del_value(BSP_VALUE *v)
 {
     if (v)
     {
+        if (BSP_VALUE_STRING == v->type)
+        {
+            bsp_del_string((BSP_STRING *) v->body.ptr);
+        }
+        else if (BSP_VALUE_OBJECT == v->type)
+        {
+            bsp_del_object((BSP_OBJECT *) v->body.ptr);
+        }
+
+        bsp_mempool_free(mp_value, v);
     }
 
     return;

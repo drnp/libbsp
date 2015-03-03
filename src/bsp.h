@@ -217,5 +217,10 @@ typedef enum bsp_fd_e
 /* Structs */
 
 /* Functions */
+// Mempool initializer
+BSP_DECLARE(int) bsp_buffer_init();
+BSP_DECLARE(int) bsp_string_init();
+BSP_DECLARE(int) bsp_value_init();
+BSP_DECLARE(int) bsp_object_init();
 
 #endif  /* _BSP_H */

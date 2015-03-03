@@ -64,7 +64,9 @@ typedef enum bsp_object_type_e
 struct bsp_array_t
 {
     size_t              nitems;
-    BSP_VALUE           **items;
+    size_t              nbuckets;
+    size_t              curr;
+    BSP_VALUE           ***items;
 };
 
 struct bsp_hash_item_t
@@ -83,16 +85,143 @@ struct bsp_hash_item_t
 
 struct bsp_hash_t
 {
-    size_t              nitmes;
+    size_t              nitems;
     size_t              hash_size;
+    struct bsp_hash_item_t
+                        *hash_table;
+    struct bsp_hash_item_t
+                        *head;
+    struct bsp_hash_item_t
+                        *tail;
+    struct bsp_hash_item_t
+                        *curr;
+};
+
+union bsp_object_node_u
+{
+    struct bsp_value_t  *single;
+    struct bsp_array_t  *array;
+    struct bsp_hash_t   *hash;
 };
 
 typedef struct bsp_object_t
 {
+    union bsp_object_node_u
+                        node;
     BSP_SPINLOCK        lock;
     BSP_OBJECT_TYPE     type;
 } BSP_OBJECT;
 
 /* Functions */
+/**
+ * Generate a new object
+ *
+ * @return p BSP_OBJECT
+ */
+BSP_DECLARE(BSP_OBJECT *) bsp_new_object();
+
+/**
+ * Delete an object
+ *
+ * @param BSP_OBJECT obj Object to delete
+ */
+BSP_DECLARE(void) bsp_del_object(BSP_OBJECT *obj);
+
+/**
+ * Get current (at cursor position) item
+ *
+ * @param BSP_OBJECT obj Input object
+ *
+ * @return p BSP_VALUE
+ */
+BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj);
+
+/**
+ * Move cursor to next item
+ *
+ * @param BSP_OBJECT obj Input object
+ */
+BSP_DECLARE(void) bsp_object_next(BSP_OBJECT *obj);
+
+/**
+ * Revert cursor to previous item
+ *
+ * @param BSP_OBJECT obj Input object
+ */
+BSP_DECLARE(void) bsp_object_prev(BSP_OBJECT *obj);
+
+/**
+ * Reset cursor to beginning
+ *
+ * @param BSP_OBJECT obj Input object
+ */
+BSP_DECLARE(void) bsp_object_reest(BSP_OBJECT *obj);
+
+/**
+ * Count items from object
+ *
+ * @param BSP_OBJECT obj Input object
+ *
+ * @return size_t Count
+ */
+BSP_DECLARE(size_t) bsp_object_size(BSP_OBJECT *obj);
+
+/**
+ * Set value to object (single)
+ * Old value will be free automatically
+ *
+ * @param BSP_OBJECT obj Target object
+ * @param BSP_VALUE val Value to set
+ */
+BSP_DECLARE(void) bsp_object_set_single(BSP_OBJECT *obj, BSP_VALUE *val);
+
+/**
+ * Insert value to object (array)
+ * Old value will be free automatically
+ *
+ * @param BSP_OBJECT obj Target object
+ * @param ssize_t idx Array index
+ * @param BSP_VALUE val Value to insert
+ */
+BSP_DECLARE(void) bsp_object_set_array(BSP_OBJECT *obj, ssize_t idx, BSP_VALUE *val);
+
+/**
+ * Set value to object (hash)
+ * If null value, item will be remove from hash
+ *
+ * @param BSP_OBJECT obj Target object
+ * @param BSP_STRING key Hash key
+ * @param BSP_VALUE val Value to set
+ */
+BSP_DECLARE(void) bsp_object_set_hash(BSP_OBJECT *obj, BSP_STRING *key, BSP_VALUE *val);
+
+/**
+ * Get value from object (single)
+ *
+ * @param BSP_OBJECT obj Target object
+ *
+ * @return p BSP_VALUE
+ */
+BSP_DECLARE(BSP_VALUE *) bsp_object_value_single(BSP_OBJECT *obj);
+
+/**
+ * Get value from object by given index (array)
+ *
+ * @param BSP_OBJECT obj Target object
+ * @param size_t idx Index of array
+ *
+ * @return p BSP_VALUE
+ */
+BSP_DECLARE(BSP_VALUE *) bsp_object_value_array(BSP_OBJECT *obj, size_t idx);
+
+/**
+ * Get value from object by given key (hash)
+ *
+ * @param BSP_OBJECT obj Target object
+ * @param BSP_STRING key Key of hash
+ *
+ * @return p BSP_VALUE
+ */
+BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash(BSP_OBJECT *obj, BSP_STRING *key);
 
 #endif  /* _UTILS_BSP_OBJECT_H */

@@ -41,9 +41,43 @@
 #include "bsp-private.h"
 #include "bsp.h"
 
-// TODO : Static init
-BSP_MEMPOOL *mp_buffer = NULL;
+BSP_PRIVATE(BSP_MEMPOOL *) mp_buffer = NULL;
 BSP_PRIVATE(const char *) _tag_ = "Buffer";
+
+/* Mempool freer */
+void _buffer_free(void *item)
+{
+    BSP_BUFFER *b = (BSP_BUFFER *) item;
+    if (b)
+    {
+        if (B_DATA(b) && !B_ISCONST(b))
+        {
+            bsp_free(B_DATA(b));
+        }
+
+        bsp_free(b);
+    }
+
+    return;
+}
+
+// Initialization. Create mempool
+BSP_DECLARE(int) bsp_buffer_init()
+{
+    if (mp_buffer)
+    {
+        return BSP_RTN_SUCCESS;
+    }
+
+    mp_buffer = bsp_new_mempool(sizeof(BSP_BUFFER), NULL, _buffer_free);
+    if (!mp_buffer)
+    {
+        bsp_trace_message(BSP_TRACE_ALERT, _tag_, "Cannot create object pool");
+        return BSP_RTN_ERR_MEMORY;
+    }
+
+    return BSP_RTN_SUCCESS;
+}
 
 BSP_PRIVATE(int) _enlarge_buffer(BSP_BUFFER *b, size_t size)
 {
@@ -97,32 +131,9 @@ BSP_PRIVATE(int) _shrink_buffer(BSP_BUFFER *b)
     return BSP_RTN_ERR_GENERAL;
 }
 
-/* Mempool freer */
-void _buffer_free(void *item)
-{
-    BSP_BUFFER *b = (BSP_BUFFER *) item;
-    if (b)
-    {
-        if (B_DATA(b) && !B_ISCONST(b))
-        {
-            bsp_free(B_DATA(b));
-        }
-
-        bsp_free(b);
-    }
-
-    return;
-}
-
 // New buffer
 BSP_DECLARE(BSP_BUFFER *) bsp_new_buffer()
 {
-    // TODO : Removal
-    if (!mp_buffer)
-    {
-        mp_buffer = bsp_new_mempool(sizeof(BSP_BUFFER), NULL, _buffer_free);
-    }
-
     BSP_BUFFER *b = bsp_mempool_alloc(mp_buffer);
 
     return b;

@@ -137,5 +137,18 @@ typedef struct bsp_value_t
 } BSP_VALUE;
 
 /* Functions */
+/**
+ * Generate a new value
+ *
+ * @return p BSP_VALUE
+ */
+BSP_DECLARE(BSP_VALUE *) bsp_new_value();
+
+/**
+ * Delete a value
+ *
+ * @param BSP_VALUE v Value to delete
+ */
+BSP_DECLARE(void) bsp_del_value(BSP_VALUE *v);
 
 #endif  /* _UTILS_BSP_VALUE_H */

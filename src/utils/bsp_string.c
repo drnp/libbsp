@@ -42,17 +42,30 @@
 #include "bsp-private.h"
 #include "bsp.h"
 
-BSP_MEMPOOL *mp_string = NULL;
+BSP_PRIVATE(BSP_MEMPOOL *) mp_string = NULL;
 BSP_PRIVATE(const char *) _tag_ = "string";
+
+// Initialization. Create mempool
+BSP_DECLARE(int) bsp_string_init()
+{
+    if (mp_string)
+    {
+        return BSP_RTN_SUCCESS;
+    }
+
+    mp_string = bsp_new_mempool(sizeof(BSP_STRING), NULL, NULL);
+    if (!mp_string)
+    {
+        bsp_trace_message(BSP_TRACE_ALERT, _tag_, "Cannot create string pool");
+        return BSP_RTN_ERR_MEMORY;
+    }
+
+    return BSP_RTN_SUCCESS;
+}
 
 // Generate a new string
 BSP_DECLARE(BSP_STRING *) bsp_new_string(const char *data, ssize_t len)
 {
-    if (!mp_string)
-    {
-        mp_string = bsp_new_mempool(sizeof(BSP_STRING), NULL, NULL);
-    }
-
     BSP_STRING *str = bsp_mempool_alloc(mp_string);
     if (!str)
     {

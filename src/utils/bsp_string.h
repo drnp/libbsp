@@ -46,6 +46,10 @@
 /* Definations */
 
 /* Macros */
+#define STR_STR(str)                    str->buf->data
+#define STR_LEN(str)                    str->buf->data_len
+#define STR_ISCONST(str)                (BSP_TRUE == str->b->is_const)
+#define STR_ISEQUAL(str1, str2)         ((str1) && (str2) && (str1->buf->data_len) == str2->buf->data_len) && (0 == memcmp(str1->buf->data, str2->buf->data, str1->buf->data_len))
 
 /* Structs */
 typedef enum bsp_compress_type_e

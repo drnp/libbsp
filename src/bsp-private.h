@@ -59,6 +59,9 @@
 #define _BSP_BUFFER_UNSATURATION        131072
 #define _BSP_MAX_TRACE_LENGTH           4096
 
+#define _BSP_ARRAY_BUCKET_SIZE          64
+#define _BSP_HASH_SIZE_INITIAL          8
+
 // This value is ignored since Linux 2.6.8
 #define _BSP_EPOLL_SIZE                 1024
 
