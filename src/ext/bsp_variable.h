@@ -29,7 +29,7 @@
  */
 
 /**
- * Variables miscellaneous header
+ * Variables functions header
  *
  * @package bsp::blacktail
  * @author Dr.NP <np@bsgroup.org>

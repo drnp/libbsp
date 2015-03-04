@@ -29,7 +29,7 @@
  */
 
 /**
- * Variables niscellaneous
+ * Variables functions
  *
  * @package bsp::blacktail
  * @author Dr.NP <np@bsgroup.org>

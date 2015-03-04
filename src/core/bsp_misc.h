@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * bsp_value.c
+ * bsp_misc.h
  * Copyright (C) 2015 Dr.NP <np@bsgroup.org>
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -29,63 +29,48 @@
  */
 
 /**
- * General values
+ * Miscellaneous functions header
  *
  * @package bsp::BlackTail
  * @author Dr.NP <np@bsgroup.org>
- * @update 03/02/2015
+ * @update 03/04/2015
  * @changelog
- *      [03/02/2015] - Creation
+ *      [03/04/2015] - Creation
  */
 
-#include "bsp-private.h"
-#include "bsp.h"
+#ifndef _CORE_BSP_MISC_H
 
-BSP_PRIVATE(BSP_MEMPOOL *) mp_value = NULL;
-BSP_PRIVATE(const char *) _tag_ = "Value";
+#define _CORE_BSP_MISC_H
+/* Headers */
 
-// Initialization. Create mempool
-BSP_DECLARE(int) bsp_value_init()
+/* Definations */
+typedef enum bsp_blocking_mode_e
 {
-    if (mp_value)
-    {
-        return BSP_RTN_SUCCESS;
-    }
+    BSP_FD_BLOCK        = 0x0, 
+#define BSP_FD_BLOCK                    BSP_FD_BLOCK
+    BSP_FD_NONBLOCK     = 0x1
+#define BSP_FD_NONBLOCK                 BSP_FD_NONBLOCK
+} BSP_BLOCKING_MODE;
 
-    mp_value = bsp_new_mempool(sizeof(BSP_VALUE), NULL, NULL);
-    if (!mp_value)
-    {
-        bsp_trace_message(BSP_TRACE_ALERT, _tag_, "Cannot create value pool");
-        return BSP_RTN_ERR_MEMORY;
-    }
+/* Macros */
 
-    return BSP_RTN_SUCCESS;
-}
+/* Structs */
 
-// Generate a new value
-BSP_DECLARE(BSP_VALUE *) bsp_new_value()
-{
-    BSP_VALUE *v = bsp_mempool_alloc(mp_value);
+/* Functions */
+/**
+ * Maxnium fd limits
+ *
+ * @return int Result
+ */
+BSP_DECLARE(int) bsp_maxnium_fds();
 
-    return v;
-}
-
-// Delete a value
-BSP_DECLARE(void) bsp_del_value(BSP_VALUE *v)
-{
-    if (v)
-    {
-        if (BSP_VALUE_STRING == v->type)
-        {
-            bsp_del_string((BSP_STRING *) v->body.vptr);
-        }
-        else if (BSP_VALUE_OBJECT == v->type)
-        {
-            bsp_del_object((BSP_OBJECT *) v->body.vptr);
-        }
-
-        bsp_mempool_free(mp_value, v);
-    }
-
-    return;
-}
+/**
+ * Set fd's blocking mode
+ *
+ * @param int fd File descriptor
+ * @param BSP_BLOCKING_MODE mode Blocking mode
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_set_blocking(const int fd, BSP_BLOCKING_MODE mode);
+#endif  /* _CORE_BSP_MISC_H */

@@ -76,6 +76,8 @@ typedef enum bsp_sock_e
 #define BSP_SOCK_SCTP_TO_MANY           BSP_SOCK_SCTP_TO_MANY
 } BSP_SOCK_TYPE;
 
+#define BSP_MAX_SERVER_SOCKETS          128
+
 /* Macros */
 
 /* Structs */
@@ -93,21 +95,21 @@ struct bsp_socket_t
 
 typedef struct bsp_socket_client_t
 {
-    struct bsp_socket_t *sck;
+    struct bsp_socket_t sck;
     time_t              last_active;
     void                *additional;
 } BSP_SOCKET_CLIENT;
 
 typedef struct bsp_socket_connector_t
 {
-    struct bsp_socket_t *sck;
+    struct bsp_socket_t sck;
     time_t              last_active;
     void                *additional;
 } BSP_SOCKET_CONNECTOR;
 
 typedef struct bsp_socket_server_t
 {
-    struct bsp_socket_t **scks;
+    struct bsp_socket_t scks[BSP_MAX_SERVER_SOCKETS];
     size_t              nscks;
     void                *additional;
 } BSP_SOCKET_SERVER;

@@ -63,6 +63,7 @@
 typedef struct bsp_event_epoll_t
 {
     int                 epoll_fd;
+    int                 notify_fd;
     struct epoll_event  *event_list;
 } BSP_EVENT_CONTAINER;
 // }}} ~Epoll
@@ -92,24 +93,31 @@ union _event_data_u
 {
     uint64_t            buff;
     uint64_t            timer;
+    void                *ptr;
 };
 
 typedef struct bsp_event_data_t
 {
     int                 fd;
-    int                 fd_type;
+    BSP_FD_TYPE         fd_type;
     union _event_data_u data;
 } BSP_EVENT_DATA;
 
 typedef struct bsp_event_t
 {
-    int                 fd;
-    BSP_FD_TYPE         fd_type;
     int                 events;
     struct itimerspec   timer_spec;
+    BSP_EVENT_DATA      data;
 } BSP_EVENT;
 
 /* Functions */
+/**
+ * Initialize event (fd) list
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_event_init();
+
 /**
  * Generate a new event container (Epoll / Kqueue / FD_SET)
  *

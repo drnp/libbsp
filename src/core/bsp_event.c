@@ -58,40 +58,58 @@ BSP_DECLARE(int) bsp_event_init()
 BSP_DECLARE(BSP_EVENT_CONTAINER *) bsp_new_event_container()
 {
     BSP_EVENT_CONTAINER *ec = bsp_calloc(1, sizeof(BSP_EVENT_CONTAINER));
-    if (ec)
+    if (!ec)
     {
-        int epoll_fd = epoll_create(_BSP_MAX_EVENTS);
-        if (0 > epoll_fd)
-        {
-            switch (errno)
-            {
-                case ENFILE : 
-                    bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Cannot open another file descriptor");
-                    break;
-                case ENOMEM : 
-                    bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Kernel memory full");
-                    break;
-                case EINVAL : 
-                default : 
-                    bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Cannot create event container");
-                    break;
-            }
+        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Create event container failed");
 
-            bsp_free(ec);
-            return NULL;
-        }
-
-        struct epoll_event *list = bsp_calloc(_BSP_MAX_EVENTS, sizeof(struct epoll_event));
-        if (!list)
-        {
-            bsp_free(ec);
-            return NULL;
-        }
-
-        ec->epoll_fd = epoll_fd;
-        ec->event_list = list;
-        bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Create new event container with Epoll");
+        return NULL;
     }
+
+    int epoll_fd = epoll_create(_BSP_MAX_EVENTS);
+    if (0 > epoll_fd)
+    {
+        switch (errno)
+        {
+            case ENFILE : 
+                bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Cannot open another file descriptor");
+                break;
+            case ENOMEM : 
+                bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Kernel memory full");
+                break;
+            case EINVAL : 
+            default : 
+                bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Cannot create event container");
+                break;
+        }
+
+        bsp_free(ec);
+        return NULL;
+    }
+
+    struct epoll_event *list = bsp_calloc(_BSP_MAX_EVENTS, sizeof(struct epoll_event));
+    if (!list)
+    {
+        bsp_free(ec);
+        return NULL;
+    }
+
+    ec->epoll_fd = epoll_fd;
+    ec->event_list = list;
+    bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Create new event container %d with Epoll", epoll_fd);
+
+    // Create event fd
+#ifdef EFD_NONBLOCK
+    ec->notify_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+#else
+    ec->notify_fd = eventfd(0, 0);
+    bsp_set_blocking(ec->notify_fd, BSP_FD_NONBLOCK);
+#endif
+    BSP_EVENT ev;
+    ev.data.fd = ec->notify_fd;
+    ev.data.fd_type = BSP_FD_EVENT;
+    ev.events = BSP_EVENT_READ;
+    bsp_add_event(ec, &ev);
+    bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Create notification event of container");
 
     return ec;
 }
@@ -112,13 +130,27 @@ BSP_DECLARE(int) bsp_del_event_container(BSP_EVENT_CONTAINER *ec)
     return BSP_RTN_INVALID;
 }
 
+// Send notify to container
+BSP_PRIVATE(int) _poke_container(BSP_EVENT_CONTAINER *ec)
+{
+    if (ec)
+    {
+        uint64_t v = 1;
+        write(ec->notify_fd, (const void *) &v, 8);
+
+        return BSP_RTN_SUCCESS;
+    }
+
+    return BSP_RTN_INVALID;
+}
+
 // Add an event to container
 BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
 {
     struct epoll_event ee;
     if (ec && ev)
     {
-        switch (ev->fd_type)
+        switch (ev->data.fd_type)
         {
             case BSP_FD_TIMER : 
                 // Timerfd in Linux
@@ -129,19 +161,19 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
                 }
 
 #ifdef TFD_NONBLOCK
-                ev->fd = timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
+                ev->data.fd = timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
 #else
                 ev->fd = timerfd_create(CLOCK_REALTIME, 0);
-                // TODO : Non-block
+                bsp_set_blocking(ev->fd, BSP_FD_NONBLOCK);
 #endif
-                if (-1 == ev->fd)
+                if (-1 == ev->data.fd)
                 {
                     return BSP_RTN_ERR_EVENT_TFD;
                 }
 
-                if (-1 == timerfd_settime(ev->fd, 0, &ev->timer_spec, NULL))
+                if (-1 == timerfd_settime(ev->data.fd, 0, &ev->timer_spec, NULL))
                 {
-                    close(ev->fd);
+                    close(ev->data.fd);
                     return BSP_RTN_ERR_EVENT_TFD;
                 }
 
@@ -154,7 +186,7 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
 #ifdef EPOLLRDHUP
                 ee.events |= EPOLLRDHUP;
 #endif
-                if (ev->events & BSP_EVENT_READ)
+                if (ev->events & BSP_EVENT_READ || ev->events & BSP_EVENT_ACCEPT)
                 {
                     // Add READ event
                     ee.events |= EPOLLIN;
@@ -169,19 +201,30 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
                 break;
         }
 
-        BSP_EVENT_DATA *ed = &(event_datas[ev->fd]);
-        ed->fd = ev->fd;
-        ed->fd_type = ev->fd_type;
-        ed->data.timer = 0;
-        ee.data.fd = ev->fd;
-        if (0 == epoll_ctl(ec->epoll_fd, EPOLL_CTL_ADD, ev->fd, &ee))
+        if (ev->data.fd >= _BSP_MAX_OPEN_FILES)
         {
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Add event %d to container", ev->fd);
+            // fd list full
+            bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "FD list full");
+
+            return BSP_RTN_FATAL;
+        }
+
+        BSP_EVENT_DATA *ed = &(event_datas[ev->data.fd]);
+        ed->fd = ev->data.fd;
+        ed->fd_type = ev->data.fd_type;
+        ed->data.timer = 0;
+        ee.data.fd = ev->data.fd;
+        if (0 == epoll_ctl(ec->epoll_fd, EPOLL_CTL_ADD, ev->data.fd, &ee))
+        {
+            _poke_container(ec);
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Add event %d to container", ev->data.fd);
+
             return BSP_RTN_SUCCESS;
         }
         else
         {
             bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Add event failed");
+
             return BSP_RTN_ERR_EVENT_EPOLL;
         }
     }
@@ -195,11 +238,11 @@ BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
     struct epoll_event ee;
     if (ec && ev)
     {
-        switch (ev->fd_type)
+        switch (ev->data.fd_type)
         {
             case BSP_FD_TIMER : 
                 // Timerfd, just modify tv
-                if (-1 == timerfd_settime(ev->fd, 0, &ev->timer_spec, NULL))
+                if (-1 == timerfd_settime(ev->data.fd, 0, &ev->timer_spec, NULL))
                 {
                     bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Timerfd settime failed");
                     return BSP_RTN_ERR_EVENT_TFD;
@@ -226,10 +269,10 @@ BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
                 break;
         }
 
-        ee.data.fd = ev->fd;
-        if (0 == epoll_ctl(ec->epoll_fd, EPOLL_CTL_MOD, ev->fd, &ee))
+        ee.data.fd = ev->data.fd;
+        if (0 == epoll_ctl(ec->epoll_fd, EPOLL_CTL_MOD, ev->data.fd, &ee))
         {
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Modify event %d from container", ev->fd);
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Modify event %d from container", ev->data.fd);
             return BSP_RTN_SUCCESS;
         }
         else
@@ -248,7 +291,7 @@ BSP_DECLARE(int) bsp_del_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
     struct epoll_event ee;
     if (ec && ev)
     {
-        switch (ev->fd_type)
+        switch (ev->data.fd_type)
         {
             case BSP_FD_TIMER : 
                 // Timerfd, stop it first
@@ -256,7 +299,7 @@ BSP_DECLARE(int) bsp_del_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
                 ev->timer_spec.it_value.tv_nsec = 0;
                 ev->timer_spec.it_interval.tv_sec = 0;
                 ev->timer_spec.it_interval.tv_nsec = 0;
-                if (-1 == timerfd_settime(ev->fd, 0, &ev->timer_spec, NULL))
+                if (-1 == timerfd_settime(ev->data.fd, 0, &ev->timer_spec, NULL))
                 {
                     bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Timerfd settime failed");
                     return BSP_RTN_ERR_EVENT_TFD;
@@ -269,9 +312,9 @@ BSP_DECLARE(int) bsp_del_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
 
         // Before Linux 2.6.9, the EPOLL_CTL_DEL required a non-null pointer in event
         ee.data.u64 = 0;
-        if (0 == epoll_ctl(ec->epoll_fd, EPOLL_CTL_DEL, ev->fd, &ee))
+        if (0 == epoll_ctl(ec->epoll_fd, EPOLL_CTL_DEL, ev->data.fd, &ee))
         {
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Delete event %d from container", ev->fd);
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Delete event %d from container", ev->data.fd);
             return BSP_RTN_SUCCESS;
         }
         else
@@ -304,22 +347,22 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
     {
         uint64_t notify_data = 0;
         struct epoll_event *ee = &ec->event_list[idx];
-        ev->fd = ee->data.fd;
-        BSP_EVENT_DATA *ed = &(event_datas[ev->fd]);
-        ev->fd_type = ed->fd_type;
+        ev->data.fd = ee->data.fd;
+        BSP_EVENT_DATA *ed = &(event_datas[ev->data.fd]);
+        ev->data.fd_type = ed->fd_type;
         if (ee->events & EPOLLIN)
         {
-            switch (ev->fd_type)
+            switch (ev->data.fd_type)
             {
                 case BSP_FD_SIGNAL : 
                     ev->events |= BSP_EVENT_SIGNAL;
                     break;
                 case BSP_FD_TIMER : 
-                    read(ev->fd, (void *) &notify_data, 8);
+                    read(ev->data.fd, (void *) &notify_data, 8);
                     ev->events |= BSP_EVENT_TIMER;
                     break;
                 case BSP_FD_EVENT : 
-                    read(ev->fd, (void *) &notify_data, 8);
+                    read(ev->data.fd, (void *) &notify_data, 8);
                     break;
                 case BSP_FD_SOCKET_SERVER : 
                     ev->events |= BSP_EVENT_ACCEPT;
@@ -338,7 +381,7 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
 
         if (ee->events & EPOLLOUT)
         {
-            switch (ev->fd_type)
+            switch (ev->data.fd_type)
             {
                 case BSP_FD_GENERAL : 
                 case BSP_FD_SOCKET_CLIENT : 
@@ -353,7 +396,7 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
 
         if (ee->events & EPOLLHUP)
         {
-            switch (ev->fd_type)
+            switch (ev->data.fd_type)
             {
                 case BSP_FD_SOCKET_CLIENT : 
                 case BSP_FD_SOCKET_CONNECTOR : 
@@ -368,7 +411,7 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
 #ifdef EPOLLRDHUP
         if (ee->events & EPOLLRDHUP)
         {
-            switch (ev->fd_type)
+            switch (ev->data.fd_type)
             {
                 case BSP_FD_SOCKET_CLIENT : 
                 case BSP_FD_SOCKET_CONNECTOR : 

@@ -116,9 +116,9 @@ typedef enum bsp_value_type_e
 #define V_INT(v, i)                     {v->body.vint = i; v->type = BSP_VALUE_INT;}
 #define V_FLOAT(v, f)                   {v->body.vfloat = f; v->type = BSP_VALUE_FLOAT;}
 #define V_DOUBLE(v, f)                  {v->body.vfloat = f; v->type = BSP_VALUE_DOUBLE;}
-#define V_STRING(v, s)                  {v->body.ptr = s; v->type = BSP_VALUE_STRING;}
-#define V_POINTER(v, p)                 {v->body.ptr = p; v->type = BSP_VALUE_POINTER;}
-#define V_OBJECT(v, o)                  {v->body.ptr = o; v->type = BSP_VALUE_OBJECT;}
+#define V_STRING(v, s)                  {v->body.vptr = s; v->type = BSP_VALUE_STRING;}
+#define V_POINTER(v, p)                 {v->body.vptr = p; v->type = BSP_VALUE_POINTER;}
+#define V_OBJECT(v, o)                  {v->body.vptr = o; v->type = BSP_VALUE_OBJECT;}
 #define V_NULL(v)                       {v->type = BSP_VALUE_NULL;}
 
 /* Structs */

@@ -75,7 +75,34 @@ typedef struct bsp_thread_t
     BSP_BOOLEAN         has_loop;
 } BSP_THREAD;
 
+struct bsp_thread_list_t
+{
+    BSP_THREAD          **list;
+    size_t              list_size;
+    size_t              total;
+    size_t              curr;
+};
+
+struct bsp_thread_pool_t
+{
+    struct bsp_thread_list_t
+                        boss_list;
+    struct bsp_thread_list_t
+                        acceptor_list;
+    struct bsp_thread_list_t
+                        io_list;
+    struct bsp_thread_list_t
+                        worker_list;
+};
+
 /* Functions */
+/**
+ * Initialize thread pool
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_thread_init();
+
 /**
  * Generate an OS thread
  *
@@ -104,5 +131,14 @@ BSP_DECLARE(int) bsp_del_thread(BSP_THREAD *t);
  * @return int Status
  */
 BSP_DECLARE(int) bsp_wait_thread(BSP_THREAD *t);
+
+/**
+ * Return usable thread from pool
+ *
+ * @param BSP_THREAD_TYPE type Thread type, BSP_THREAD_NORMAL not in pool
+ *
+ * @return p BSP_THREAD
+ */
+BSP_DECLARE(BSP_THREAD *) bsp_select_thread(BSP_THREAD_TYPE type);
 
 #endif  /* _CORE_BSP_THREAD_H */

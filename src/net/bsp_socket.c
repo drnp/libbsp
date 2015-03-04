@@ -105,6 +105,7 @@ BSP_PRIVATE(void) _maximize_socket_buffer(const int fd)
 BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t port, uint8_t inet_type, uint8_t sock_type)
 {
     int fd, ret, flag;
+    int nfds = 0;
     char port_str[8];
     char ipaddr[64];
     struct addrinfo *ai, *next;
@@ -155,6 +156,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
             hints.ai_socktype = SOCK_SEQPACKET;
             hints.ai_protocol = IPPROTO_SCTP;
             break;
+        case BSP_SOCK_ANY : 
         default : 
             hints.ai_socktype = 0;
             hints.ai_protocol = 0;
@@ -177,8 +179,23 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
         return NULL;
     }
 
+    srv = bsp_calloc(1, sizeof(BSP_SOCKET_SERVER));
+    if (!srv)
+    {
+        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Cannot create socket server, memory alloc failed");
+
+        return NULL;
+    }
+
     for (next = ai; next; next = next->ai_next)
     {
+        if (nfds >= BSP_MAX_SERVER_SOCKETS)
+        {
+            // Server full of sockets -_-
+            bsp_trace_message(BSP_TRACE_WARNING, _tag_, "Too many sockets in a single server");
+            break;
+        }
+
         switch (next->ai_family)
         {
             case AF_INET : 
@@ -197,27 +214,43 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                 break;
         }
 
+        switch (next->ai_protocol)
+        {
+            case IPPROTO_TCP : 
+                break;
+            case IPPROTO_UDP : 
+                break;
+            case IPPROTO_SCTP : 
+                break;
+            default : 
+                // Unsupport
+                continue;
+                break;
+        }
+
         // Create socket
         fd = socket(next->ai_family, next->ai_socktype, next->ai_protocol);
         if (-1 == fd)
         {
-            bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Create socket failed");
+            bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Create socket failed on %d %d %d", next->ai_family, next->ai_socktype, next->ai_protocol);
+
             continue;
         }
 
-        // TODO : Set non-blocking mode
-
+        bsp_set_blocking(fd, BSP_FD_NONBLOCK);
         switch (next->ai_socktype)
         {
             case SOCK_STREAM : 
                 if (IPPROTO_SCTP == next->ai_protocol)
                 {
                     // SCTP (1 -> 1)
+                    bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Try to create SCTP server on %s:%d", ipaddr, port);
                     // TODO : SCTP
                 }
                 else
                 {
                     // TCP
+                    bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Try to create TCP server on %s:%d", ipaddr, port);
                     flag = 1;
                     if (0 != setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void *) &flag, sizeof(flag)) || 
                         0 != setsockopt(fd, SOL_SOCKET, SO_LINGER, (void *) &ling, sizeof(ling)) ||
@@ -244,10 +277,14 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                         close(fd);
                         continue;
                     }
+
+                    bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "TCP server created on %s:%d", ipaddr, port);
                 }
+
                 break;
             case SOCK_DGRAM : 
                 // UDP (There was no other socket type of SOCK_DGRAM except UDP now)
+                bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Try to create UDP server on %s:%d", ipaddr, port);
                 flag = 1; 
                 if (0 != setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &flag, sizeof(flag)))
                 {
@@ -255,6 +292,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                     close(fd);
                     continue;
                 }
+
                 // Try to enlarge socket buffer
                 _maximize_socket_buffer(fd);
 
@@ -265,6 +303,8 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                     close(fd);
                     continue;
                 }
+
+                bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "UDP server created on %s:%d", ipaddr, port);
                 break;
             case SOCK_SEQPACKET : 
                 // SCTP (1 -> n)
@@ -276,9 +316,17 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                 continue;
                 break;
         }
+
+        srv->scks[nfds].fd = fd;
+        memcpy(&srv->scks[nfds].saddr, (struct sockaddr_storage *) next->ai_addr, sizeof(struct sockaddr_storage));
+        memcpy(&srv->scks[nfds].addr, next, sizeof(struct addrinfo));
+        srv->scks[nfds].addr.ai_addr = (struct sockaddr *) &srv->scks[nfds].saddr;
+        nfds ++;
+        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Register fd %d as a socket server", fd);
     }
 
     freeaddrinfo(ai);
+    srv->nscks = nfds;
 
     return srv;
 }

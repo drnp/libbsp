@@ -13,6 +13,8 @@ libbsp_la_SOURCES = \
 	bsp.h \
 	core/bsp_debug.h \
 	core/bsp_debug.c \
+	core/bsp_misc.h \
+	core/bsp_misc.c \
 	core/bsp_tinyspin.h \
 	core/bsp_tinyspin.c \
 	core/bsp_mempool.h \
@@ -33,6 +35,8 @@ libbsp_la_SOURCES = \
 	net/bsp_socket.c \
 	utils/bsp_string.h \
 	utils/bsp_string.c \
+	utils/bsp_value.h \
+	utils/bsp_value.c \
 	utils/bsp_object.h \
 	utils/bsp_object.c
 
@@ -43,6 +47,7 @@ libbsp_la_LIBADD =
 nobase_pkginclude_HEADERS = \
 	bsp.h \
 	core/bsp_debug.h \
+	core/bsp_misc.h \
 	core/bsp_tinyspin.h \
 	core/bsp_mempool.h \
 	core/bsp_event.h \
@@ -53,6 +58,7 @@ nobase_pkginclude_HEADERS = \
 	ext/bsp_buffer.h \
 	net/bsp_socket.h \
 	utils/bsp_string.h \
+	utils/bsp_value.h \
 	utils/bsp_object.h
 
 pkgconfigdir = $(libdir)/pkgconfig

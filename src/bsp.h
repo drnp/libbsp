@@ -78,6 +78,7 @@
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/timerfd.h>
@@ -157,6 +158,7 @@ typedef enum bsp_fd_e
 
 // Headers
 #include "core/bsp_debug.h"
+#include "core/bsp_misc.h"
 #include "core/bsp_event.h"
 #include "core/bsp_thread.h"
 #include "core/bsp_mempool.h"

@@ -42,6 +42,40 @@
 #include "bsp.h"
 
 BSP_PRIVATE(const char *) _tag_ = "Thread";
+BSP_PRIVATE(struct bsp_thread_pool_t) thread_pool;
+
+// Initialize thread pool
+BSP_DECLARE(int) bsp_thread_init()
+{
+    bzero(&thread_pool, sizeof(struct bsp_thread_pool_t));
+    thread_pool.boss_list.list = bsp_calloc(_BSP_THREAD_LIST_INITIAL, sizeof(BSP_THREAD *));
+    thread_pool.acceptor_list.list = bsp_calloc(_BSP_THREAD_LIST_INITIAL, sizeof(BSP_THREAD *));
+    thread_pool.io_list.list = bsp_calloc(_BSP_THREAD_LIST_INITIAL, sizeof(BSP_THREAD *));
+    thread_pool.worker_list.list = bsp_calloc(_BSP_THREAD_LIST_INITIAL, sizeof(BSP_THREAD *));
+
+    if (!thread_pool.boss_list.list || 
+        !thread_pool.acceptor_list.list || 
+        !thread_pool.io_list.list || 
+        !thread_pool.worker_list.list)
+    {
+        // Calloc failed
+        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Create thread pool failed");
+        bsp_free(thread_pool.boss_list.list);
+        bsp_free(thread_pool.acceptor_list.list);
+        bsp_free(thread_pool.io_list.list);
+        bsp_free(thread_pool.worker_list.list);
+
+        return BSP_RTN_ERR_MEMORY;
+    }
+
+    thread_pool.boss_list.list_size = _BSP_THREAD_LIST_INITIAL;
+    thread_pool.acceptor_list.list_size = _BSP_THREAD_LIST_INITIAL;
+    thread_pool.io_list.list_size = _BSP_THREAD_LIST_INITIAL;
+    thread_pool.worker_list.list_size = _BSP_THREAD_LIST_INITIAL;
+
+    return BSP_RTN_SUCCESS;
+}
+
 void * _process(void *arg)
 {
     BSP_THREAD *me = (BSP_THREAD *) arg;
@@ -64,9 +98,12 @@ void * _process(void *arg)
         for (i = 0; i < nfds; i ++)
         {
             bsp_get_active_event(me->event_container, &ev, i);
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event triggered on fd %d", ev.data.fd);
             if (ev.events & BSP_EVENT_ACCEPT)
             {
                 // Do TCP accept
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try to accept a socket client");
+                //BSP_SOCKET_CLIENT *clt = bsp_socket_accept(srv);
             }
 
             if (ev.events & BSP_EVENT_SIGNAL)
@@ -121,6 +158,8 @@ BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type, void (*hook_forme
     BSP_THREAD *t = bsp_calloc(1, sizeof(BSP_THREAD));
     if (!t)
     {
+        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Create thread failed");
+
         return NULL;
     }
 
@@ -165,7 +204,52 @@ BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type, void (*hook_forme
 
     if (0 == pthread_create(&t->pid, &attr, _process, (void *) t))
     {
-        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Create thread %llu", (uint64_t) t->pid);
+        bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Create thread %llu", (uint64_t) t->pid);
+        // Add into list
+        struct bsp_thread_list_t *list = NULL;
+        switch (type)
+        {
+            case BSP_THREAD_BOSS : 
+                list = &thread_pool.boss_list;
+                break;
+            case BSP_THREAD_ACCEPTOR : 
+                list = &thread_pool.acceptor_list;
+                break;
+            case BSP_THREAD_IO : 
+                list = &thread_pool.io_list;
+                break;
+            case BSP_THREAD_WORKER : 
+                list = &thread_pool.worker_list;
+                break;
+            case BSP_THREAD_NORMAL : 
+            default : 
+                // No normal thread list
+                break;
+        }
+
+        if (list)
+        {
+            if (list->total >= list->list_size)
+            {
+                // Enlarge list
+                BSP_THREAD **new_list = bsp_realloc(list->list, list->list_size * 2 * sizeof(BSP_THREAD *));
+                if (!new_list)
+                {
+                    bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Enlarge thread pool failed");
+                }
+                else
+                {
+                    list->list = new_list;
+                    list->list_size *= 2;
+                }
+            }
+
+            if (list->total < list->list_size)
+            {
+                list->list[list->total ++] = t;
+                bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Add thread %llu to pool", (uint64_t) t->pid);
+            }
+        }
     }
     else
     {
@@ -241,4 +325,41 @@ BSP_DECLARE(int) bsp_wait_thread(BSP_THREAD *t)
     }
 
     return BSP_RTN_INVALID;
+}
+
+// Return thread
+BSP_DECLARE(BSP_THREAD *) bsp_select_thread(BSP_THREAD_TYPE type)
+{
+    struct bsp_thread_list_t *list = NULL;
+    BSP_THREAD *t = NULL;
+    switch (type)
+    {
+        case BSP_THREAD_BOSS : 
+            list = &thread_pool.boss_list;
+            break;
+        case BSP_THREAD_ACCEPTOR : 
+            list = &thread_pool.acceptor_list;
+            break;
+        case BSP_THREAD_IO : 
+            list = &thread_pool.io_list;
+            break;
+        case BSP_THREAD_WORKER : 
+            list = &thread_pool.worker_list;
+            break;
+        case BSP_THREAD_NORMAL : 
+        default : 
+            break;
+    }
+
+    if (list)
+    {
+        t = list->list[list->curr];
+        list->curr ++;
+        if (list->curr >= list->total)
+        {
+            list->curr = 0;
+        }
+    }
+
+    return t;
 }

@@ -47,7 +47,7 @@
 typedef struct bsp_buffer_t
 {
     char                *data;
-    size_t              size;            // Buffer length
+    size_t              size;           // Buffer length
     size_t              data_len;       // Data length
     size_t              cursor;
     BSP_BOOLEAN         is_const;

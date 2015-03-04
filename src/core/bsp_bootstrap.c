@@ -81,16 +81,6 @@ BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o)
     options.boss_hook_former = o->boss_hook_former;
     options.boss_hook_latter = o->boss_hook_latter;
 
-    if ((BSP_RTN_SUCCESS != bsp_buffer_init()) | 
-        (BSP_RTN_SUCCESS != bsp_string_init()) | 
-        (BSP_RTN_SUCCESS != bsp_value_init()) | 
-        (BSP_RTN_SUCCESS != bsp_object_init()))
-    {
-        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Mempool initialize failed");
-
-        return BSP_RTN_FATAL;
-    }
-
     return BSP_RTN_SUCCESS;
 }
 
@@ -99,6 +89,19 @@ BSP_DECLARE(int) bsp_startup()
 {
     bsp_set_trace_level(options.trace_level);
     bsp_set_trace_recipient(options.trace_recipient);
+
+    bsp_maxnium_fds();
+    bsp_event_init();
+    if ((BSP_RTN_SUCCESS != bsp_thread_init()) | 
+        (BSP_RTN_SUCCESS != bsp_buffer_init()) | 
+        (BSP_RTN_SUCCESS != bsp_string_init()) | 
+        (BSP_RTN_SUCCESS != bsp_value_init()) | 
+        (BSP_RTN_SUCCESS != bsp_object_init()))
+    {
+        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Mempool initialize failed");
+
+        return BSP_RTN_FATAL;
+    }
 
     int i;
     BSP_THREAD *t;

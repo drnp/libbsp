@@ -50,6 +50,7 @@
  */
 // Values
 #define _BSP_MAX_OPEN_FILES             1048576
+#define _BSP_SAFE_OPEN_FILES            1024
 #define _BSP_TCP_BACKLOG                511
 #define _BSP_UDP_MAX_SNDBUF             1048576
 #define _BSP_UDP_MAX_RCVBUF             1048576
@@ -58,7 +59,7 @@
 #define _BSP_BUFFER_HIGHWATER           524288
 #define _BSP_BUFFER_UNSATURATION        131072
 #define _BSP_MAX_TRACE_LENGTH           4096
-
+#define _BSP_THREAD_LIST_INITIAL        128
 #define _BSP_ARRAY_BUCKET_SIZE          64
 #define _BSP_HASH_SIZE_INITIAL          8
 
