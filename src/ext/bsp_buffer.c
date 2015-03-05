@@ -83,7 +83,7 @@ BSP_PRIVATE(int) _enlarge_buffer(BSP_BUFFER *b, size_t size)
 {
     if (b && size > B_SIZE(b))
     {
-        size_t new_size = 2 << (int) log2(size);
+        size_t new_size = 2 << bsp_log2(size);
         char *new_data = bsp_realloc(B_DATA(b), new_size);
         if (new_data)
         {
