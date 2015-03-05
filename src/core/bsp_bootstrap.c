@@ -96,7 +96,8 @@ BSP_DECLARE(int) bsp_startup()
         (BSP_RTN_SUCCESS != bsp_buffer_init()) | 
         (BSP_RTN_SUCCESS != bsp_string_init()) | 
         (BSP_RTN_SUCCESS != bsp_value_init()) | 
-        (BSP_RTN_SUCCESS != bsp_object_init()))
+        (BSP_RTN_SUCCESS != bsp_object_init()) | 
+        (BSP_RTN_SUCCESS != bsp_socket_init()))
     {
         bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Mempool initialize failed");
 

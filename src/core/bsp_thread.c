@@ -86,6 +86,7 @@ void * _process(void *arg)
 
     int nfds, i;
     BSP_EVENT ev;
+    BSP_SOCKET *sck = NULL;
 
     if (me->hook_former)
     {
@@ -98,14 +99,10 @@ void * _process(void *arg)
         for (i = 0; i < nfds; i ++)
         {
             bsp_get_active_event(me->event_container, &ev, i);
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event triggered on fd %d", ev.data.fd);
-            if (ev.events & BSP_EVENT_ACCEPT)
-            {
-                // Do TCP accept
-                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try to accept a socket client");
-                //BSP_SOCKET_CLIENT *clt = bsp_socket_accept(srv);
-            }
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d triggered on fd %d", ev.events, ev.data.fd);
+            sck = NULL;
 
+            // Non socket
             if (ev.events & BSP_EVENT_SIGNAL)
             {
                 // Signal
@@ -117,29 +114,84 @@ void * _process(void *arg)
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Timer event triggered");
             }
 
+            if (ev.events & BSP_EVENT_EVENT)
+            {
+                // Event
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Notification event triggered");
+            }
+
+            // Socket
             if (ev.events & BSP_EVENT_READ)
             {
                 // Data can read
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d become readable", ev.data.fd);
+                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck->state |= BSP_SOCK_STATE_READABLE;
             }
 
             if (ev.events & BSP_EVENT_WRITE)
             {
                 // IO writable
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d become writable", ev.data.fd);
+                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck->state |= BSP_SOCK_STATE_WRITABLE;
+            }
+
+            if (ev.events & BSP_EVENT_ACCEPT)
+            {
+                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck->state |= BSP_SOCK_STATE_ACCEPTABLE;
+                while (BSP_TRUE)
+                {
+                    // Do TCP accept
+                    bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try to accept a socket client");
+                    BSP_SOCKET_CLIENT *clt = bsp_new_client(sck);
+                    BSP_THREAD *t = NULL;
+
+                    if (clt)
+                    {
+                        // Add to IO thread
+                        t = bsp_select_thread(BSP_THREAD_IO);
+                        if (t)
+                        {
+                            ev.data.fd = clt->sck.fd;
+                            ev.data.associate.ptr = clt;
+                            ev.events = BSP_EVENT_READ;
+                            ev.data.fd_type = (BSP_SOCK_TCP == sck->sock_type) ? BSP_FD_SOCKET_CLIENT_TCP : BSP_FD_SOCKET_CLIENT_SCTP;
+                            bsp_add_event(t->event_container, &ev);
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
 
             if (ev.events & BSP_EVENT_LOCAL_HUP)
             {
                 // Local hup
+                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
             }
 
             if (ev.events & BSP_EVENT_REMOTE_HUP)
             {
                 // Remote hup
+                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
             }
 
             if (ev.events & BSP_EVENT_ERROR)
             {
                 // General error
+                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_PRECLOSE;
+            }
+
+            if (sck)
+            {
+                bsp_drive_socket(sck);
             }
         }
     }

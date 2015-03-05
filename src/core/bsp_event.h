@@ -44,15 +44,16 @@
 /* Headers */
 
 /* Definations */
-#define BSP_EVENT_NONE                  0b00000000
-#define BSP_EVENT_READ                  0b00000001
-#define BSP_EVENT_WRITE                 0b00000010
-#define BSP_EVENT_TIMER                 0b00000100
-#define BSP_EVENT_SIGNAL                0b00001000
-#define BSP_EVENT_ACCEPT                0b00010000
-#define BSP_EVENT_LOCAL_HUP             0b00100000
-#define BSP_EVENT_REMOTE_HUP            0b01000000
-#define BSP_EVENT_ERROR                 0b10000001
+#define BSP_EVENT_NONE                  0x0
+#define BSP_EVENT_READ                  0x1
+#define BSP_EVENT_WRITE                 0x2
+#define BSP_EVENT_TIMER                 0x4
+#define BSP_EVENT_SIGNAL                0x8
+#define BSP_EVENT_EVENT                 0x10
+#define BSP_EVENT_ACCEPT                0x20
+#define BSP_EVENT_LOCAL_HUP             0x40
+#define BSP_EVENT_REMOTE_HUP            0x80
+#define BSP_EVENT_ERROR                 0x100
 
 /* Macros */
 
@@ -100,7 +101,7 @@ typedef struct bsp_event_data_t
 {
     int                 fd;
     BSP_FD_TYPE         fd_type;
-    union _event_data_u data;
+    union _event_data_u associate;
 } BSP_EVENT_DATA;
 
 typedef struct bsp_event_t

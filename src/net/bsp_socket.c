@@ -41,7 +41,25 @@
 #include "bsp-private.h"
 #include "bsp.h"
 
+BSP_PRIVATE(BSP_MEMPOOL *) mp_client = NULL;
+BSP_PRIVATE(BSP_MEMPOOL *) mp_connector = NULL;
 BSP_PRIVATE(const char *) _tag_ = "Socket";
+
+// Initialization : Create mempool
+BSP_DECLARE(int) bsp_socket_init()
+{
+    mp_client = bsp_new_mempool(sizeof(BSP_SOCKET_CLIENT), NULL, NULL);
+    mp_connector = bsp_new_mempool(sizeof(BSP_SOCKET_CONNECTOR), NULL, NULL);
+
+    if (!mp_client || !mp_connector)
+    {
+        bsp_trace_message(BSP_TRACE_ALERT, _tag_, "Create mempool failed");
+
+        return BSP_RTN_ERR_MEMORY;
+    }
+
+    return BSP_RTN_SUCCESS;
+}
 
 // Sets sockets' snd buffer size to the maximum value
 BSP_PRIVATE(void) _maximize_socket_buffer(const int fd)
@@ -102,7 +120,7 @@ BSP_PRIVATE(void) _maximize_socket_buffer(const int fd)
 }
 
 // Create a network server
-BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t port, uint8_t inet_type, uint8_t sock_type)
+BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t port, BSP_INET_TYPE inet_type, BSP_SOCK_TYPE sock_type)
 {
     int fd, ret, flag;
     int nfds = 0;
@@ -202,11 +220,13 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                 // IPv4
                 sin = (struct sockaddr_in *) next->ai_addr;
                 inet_ntop(AF_INET, &sin->sin_addr.s_addr, ipaddr, 63);
+                inet_type = BSP_INET_IPV4;
                 break;
             case AF_INET6 : 
+                // IPv6
                 sin6 = (struct sockaddr_in6 *) next->ai_addr;
                 inet_ntop(AF_INET6, &sin6->sin6_addr.s6_addr, ipaddr, 63);
-                // IPv6
+                inet_type = BSP_INET_IPV6;
                 break;
             default : 
                 // Unsupported
@@ -246,6 +266,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                     // SCTP (1 -> 1)
                     bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Try to create SCTP server on %s:%d", ipaddr, port);
                     // TODO : SCTP
+                    sock_type = BSP_SOCK_SCTP_TO_ONE;
                 }
                 else
                 {
@@ -279,6 +300,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                     }
 
                     bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "TCP server created on %s:%d", ipaddr, port);
+                    sock_type = BSP_SOCK_TCP;
                 }
 
                 break;
@@ -305,10 +327,12 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                 }
 
                 bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "UDP server created on %s:%d", ipaddr, port);
+                sock_type = BSP_SOCK_UDP;
                 break;
             case SOCK_SEQPACKET : 
                 // SCTP (1 -> n)
                 // TODO : SCTP
+                sock_type = BSP_SOCK_SCTP_TO_MANY;
                 break;
             default : 
                 // Unsupported sock type
@@ -318,9 +342,12 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
         }
 
         srv->scks[nfds].fd = fd;
+        srv->scks[nfds].inet_type = inet_type;
+        srv->scks[nfds].sock_type = sock_type;
         memcpy(&srv->scks[nfds].saddr, (struct sockaddr_storage *) next->ai_addr, sizeof(struct sockaddr_storage));
         memcpy(&srv->scks[nfds].addr, next, sizeof(struct addrinfo));
         srv->scks[nfds].addr.ai_addr = (struct sockaddr *) &srv->scks[nfds].saddr;
+        srv->scks[nfds].ptr = (void *) srv;
         nfds ++;
         bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Register fd %d as a socket server", fd);
     }
@@ -401,7 +428,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_unix_server(const char *sock_file, uint
 }
 
 // Create a network connector
-BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_net_connector(const char *addr, uint16_t port, uint8_t inet_type, uint8_t sock_type)
+BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_net_connector(const char *addr, uint16_t port, BSP_INET_TYPE inet_type, BSP_SOCK_TYPE sock_type)
 {
     int fd, ret, flag;
     char port_str[8];
@@ -616,4 +643,118 @@ BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_unix_connector(const char *sock_file
     }
 
     return cnt;
+}
+
+// Create a new client within server accept event
+BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck)
+{
+    BSP_SOCKET_CLIENT *clt = NULL;
+    BSP_SOCKET_SERVER *srv = NULL;
+    int client_fd;
+    char ipaddr[64];
+    struct sockaddr_in *clt_sin4 = NULL;
+    struct sockaddr_in6 *clt_sin6 = NULL;
+    if (sck)
+    {
+        clt = bsp_mempool_alloc(mp_client);
+        if (!clt)
+        {
+            bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Create socket client failed");
+
+            return NULL;
+        }
+
+        socklen_t len = sizeof(clt->sck.saddr);
+        switch (sck->sock_type)
+        {
+            case BSP_SOCK_TCP : 
+                // Do accept
+                client_fd = accept(sck->fd, (struct sockaddr *) &clt->sck.saddr, &len);
+                if (-1 == client_fd)
+                {
+                    bsp_mempool_free(mp_client, clt);
+                    bsp_trace_message(BSP_TRACE_ERROR, _tag_, "TCP accept failed");
+
+                    return NULL;
+                }
+
+                bsp_set_blocking(client_fd, BSP_FD_BLOCK);
+                clt->sck.fd = client_fd;
+                if (BSP_INET_IPV6 == sck->inet_type)
+                {
+                    clt_sin6 = (struct sockaddr_in6 *) &clt->sck.saddr;
+                    inet_ntop(AF_INET6, &clt_sin6->sin6_addr.s6_addr, ipaddr, 63);
+                    bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "IPv6 TCP client connected form %s:%d", ipaddr, ntohs(clt_sin6->sin6_port));
+                }
+                else
+                {
+                    clt_sin4 = (struct sockaddr_in *) &clt->sck.saddr;
+                    inet_ntop(AF_INET, &clt_sin4->sin_addr.s_addr, ipaddr, 63);
+                    bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "IPv4 TCP client connected from %s:%d", ipaddr, ntohs(clt_sin4->sin_port));
+                }
+
+                break;
+            case BSP_SOCK_UDP : 
+                // Need not accept
+                break;
+            case BSP_SOCK_SCTP_TO_ONE : 
+            case BSP_SOCK_SCTP_TO_MANY : 
+            default : 
+                break;
+        }
+
+        clt->sck.inet_type = sck->inet_type;
+        clt->sck.sock_type = sck->sock_type;
+        clt->sck.addr.ai_family = sck->addr.ai_family;
+        clt->sck.addr.ai_socktype = sck->addr.ai_socktype;
+        clt->sck.addr.ai_protocol = sck->addr.ai_protocol;
+        clt->sck.addr.ai_addrlen = sck->addr.ai_addrlen;
+        clt->sck.ptr = (void *) clt;
+        srv = (BSP_SOCKET_SERVER *) sck->ptr;
+        if (srv)
+        {
+            // Callback
+        }
+    }
+
+    return clt;
+}
+
+// Proceed IO
+BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
+{
+    if (!sck)
+    {
+        return 0;
+    }
+/*
+    BSP_SOCKET_SERVER *srv = NULL;
+    BSP_SOCKET_CLIENT *clt = NULL;
+    BSP_SOCKET_CONNECTOR *cnt = NULL;
+*/
+    if (sck->state & BSP_SOCK_STATE_ERROR)
+    {
+    }
+
+    if (sck->state & BSP_SOCK_STATE_CLOSE)
+    {
+    }
+
+    if (sck->state & BSP_SOCK_STATE_READABLE)
+    {
+    }
+
+    if (sck->state & BSP_SOCK_STATE_WRITABLE)
+    {
+    }
+
+    if (sck->state & BSP_SOCK_STATE_ACCEPTABLE)
+    {
+    }
+
+    if (sck->state & BSP_SOCK_STATE_PRECLOSE)
+    {
+    }
+
+    return BSP_RTN_SUCCESS;
 }

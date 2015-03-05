@@ -45,7 +45,7 @@
 
 /* Definations */
 // Inet type of socket
-typedef enum bsp_inet_e
+typedef enum bsp_inet_type_e
 {
     BSP_INET_ANY        = 0x0, 
 #define BSP_INET_ANY                    BSP_INET_ANY
@@ -58,7 +58,7 @@ typedef enum bsp_inet_e
 } BSP_INET_TYPE;
 
 // Socket type
-typedef enum bsp_sock_e
+typedef enum bsp_sock_type_e
 {
     BSP_SOCK_ANY        = 0x0, 
 #define BSP_SOCK_ANY                    BSP_SOCK_ANY
@@ -76,22 +76,56 @@ typedef enum bsp_sock_e
 #define BSP_SOCK_SCTP_TO_MANY           BSP_SOCK_SCTP_TO_MANY
 } BSP_SOCK_TYPE;
 
+// Socket state
+enum bsp_sock_state_e
+{
+    BSP_SOCK_STATE_IDLE
+                        = 0b00000000, 
+#define BSP_SOCK_STATE_IDLE             BSP_SOCK_STATE_IDLE
+    BSP_SOCK_STATE_ACCEPTABLE
+                        = 0b00000001, 
+#define BSP_SOCK_STATE_ACCEPTABLE       BSP_SOCK_STATE_ACCEPTABLE
+    BSP_SOCK_STATE_CONNECTED
+                        = 0b00000010, 
+#define BSP_SOCK_STATE_CONNECTED        BSP_SOCK_STATE_CONNECTED
+    BSP_SOCK_STATE_READABLE
+                        = 0b00000100, 
+#define BSP_SOCK_STATE_READABLE         BSP_SOCK_STATE_READABLE
+    BSP_SOCK_STATE_WRITABLE
+                        = 0b00001000, 
+#define BSP_SOCK_STATE_WRITABLE         BSP_SOCK_STATE_WRITABLE
+    BSP_SOCK_STATE_ERROR
+                        = 0b00010000, 
+#define BSP_SOCK_STATE_ERROR            BSP_SOCK_STATE_ERROR
+    BSP_SOCK_STATE_PRECLOSE
+                        = 0b00100000, 
+#define BSP_SOCK_STATE_PRECLOSE         BSP_SOCK_STATE_PRECLOSE
+    BSP_SOCK_STATE_CLOSE
+                        = 0b01000000
+#define BSP_SOCK_STATE_CLOSE            BSP_SOCK_STATE_CLOSE
+};
+
 #define BSP_MAX_SERVER_SOCKETS          128
 
 /* Macros */
 
 /* Structs */
-struct bsp_socket_t
+typedef struct bsp_socket_t
 {
     // Summaries
     int                 fd;
     struct sockaddr_storage
                         saddr;
     struct addrinfo     addr;
+    BSP_INET_TYPE       inet_type;
+    BSP_SOCK_TYPE       sock_type;
 
     // State
     int                 state;
-};
+
+    // Reflex
+    void                *ptr;
+} BSP_SOCKET;
 
 typedef struct bsp_socket_client_t
 {
@@ -116,6 +150,13 @@ typedef struct bsp_socket_server_t
 
 /* Functions */
 /**
+ * Initialize socket mempool
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_socket_init();
+
+/**
  * Create a new socket server, listened on a network port
  * One server should have multiple socket file descrptions
  *
@@ -126,7 +167,7 @@ typedef struct bsp_socket_server_t
  *
  * @return p BSP_SOCKET_SERVER
  */
-BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t port, uint8_t inet_type, uint8_t sock_type);
+BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t port, BSP_INET_TYPE inet_type, BSP_SOCK_TYPE sock_type);
 
 /**
  * Create a new socket server, listened on UNIX local sock pipe
@@ -148,7 +189,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_unix_server(const char *sock_file, uint
  *
  * @return p BSP_SOCKET_CONNECTOR
  */
-BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_net_connector(const char *addr, uint16_t port, uint8_t inet_type, uint8_t sock_type);
+BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_net_connector(const char *addr, uint16_t port, BSP_INET_TYPE inet_type, BSP_SOCK_TYPE sock_type);
 
 /**
  * Connect a local socket server (UNIX sock pipe) by given path
@@ -158,5 +199,23 @@ BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_net_connector(const char *addr, uint
  * @return p BSP_SOCKET_CONNECTOR
  */
 BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_unix_connector(const char *sock_file);
+
+/**
+ * Create (accept) a new client by given socket (server)
+ *
+ * @param BSP_SOCKET sck Server's socket
+ *
+ * @return p BSP_SOCKET_SERVER
+ */
+BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck);
+
+/**
+ * Proceed socket IO
+ *
+ * @param BSP_SOCKET sck Socket to proceed
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck);
 
 #endif  /* _NET_BSP_SOCKET_H */

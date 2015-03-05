@@ -62,6 +62,7 @@ BSP_DECLARE(int) bsp_object_init()
     if (!mp_object || !mp_array || !mp_hash || !mp_hash_item)
     {
         bsp_trace_message(BSP_TRACE_ALERT, _tag_, "Cannot create object pool");
+
         return BSP_RTN_ERR_MEMORY;
     }
 

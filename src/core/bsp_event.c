@@ -107,7 +107,8 @@ BSP_DECLARE(BSP_EVENT_CONTAINER *) bsp_new_event_container()
     BSP_EVENT ev;
     ev.data.fd = ec->notify_fd;
     ev.data.fd_type = BSP_FD_EVENT;
-    ev.events = BSP_EVENT_READ;
+    ev.data.associate.buff = 0;
+    ev.events = BSP_EVENT_EVENT;
     bsp_add_event(ec, &ev);
     bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Create notification event of container");
 
@@ -178,6 +179,7 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
                 }
 
                 ee.events = EPOLLET | EPOLLIN;
+                ev->data.associate.timer = 0;
                 break;
             default : 
                 // IO events
@@ -186,7 +188,7 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
 #ifdef EPOLLRDHUP
                 ee.events |= EPOLLRDHUP;
 #endif
-                if (ev->events & BSP_EVENT_READ || ev->events & BSP_EVENT_ACCEPT)
+                if (ev->events & BSP_EVENT_READ || ev->events & BSP_EVENT_ACCEPT || ev->events & BSP_EVENT_EVENT || ev->events & BSP_EVENT_SIGNAL)
                 {
                     // Add READ event
                     ee.events |= EPOLLIN;
@@ -212,12 +214,12 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
         BSP_EVENT_DATA *ed = &(event_datas[ev->data.fd]);
         ed->fd = ev->data.fd;
         ed->fd_type = ev->data.fd_type;
-        ed->data.timer = 0;
+        ed->associate.ptr = ev->data.associate.ptr;
         ee.data.fd = ev->data.fd;
         if (0 == epoll_ctl(ec->epoll_fd, EPOLL_CTL_ADD, ev->data.fd, &ee))
         {
             _poke_container(ec);
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Add event %d to container", ev->data.fd);
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Add event %d to container with event %d", ev->data.fd, ev->events);
 
             return BSP_RTN_SUCCESS;
         }
@@ -256,7 +258,7 @@ BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
 #ifdef EPOLLRDHUP
                 ee.events |= EPOLLRDHUP;
 #endif
-                if (ev->events & BSP_EVENT_READ)
+                if (ev->events & BSP_EVENT_READ || ev->events & BSP_EVENT_ACCEPT || ev->events & BSP_EVENT_EVENT || ev->events & BSP_EVENT_SIGNAL)
                 {
                     ee.events |= EPOLLIN;
                 }
@@ -347,9 +349,18 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
     {
         uint64_t notify_data = 0;
         struct epoll_event *ee = &ec->event_list[idx];
+        if (!ee)
+        {
+            bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Cannot get active event from list");
+
+            return BSP_RTN_ERR_GENERAL;
+        }
+
+        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try to fetch event %d from container", ee->data.fd);
         ev->data.fd = ee->data.fd;
         BSP_EVENT_DATA *ed = &(event_datas[ev->data.fd]);
         ev->data.fd_type = ed->fd_type;
+        ev->events = BSP_EVENT_NONE;
         if (ee->events & EPOLLIN)
         {
             switch (ev->data.fd_type)
@@ -359,18 +370,25 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
                     break;
                 case BSP_FD_TIMER : 
                     read(ev->data.fd, (void *) &notify_data, 8);
+                    ed->associate.timer += notify_data;
                     ev->events |= BSP_EVENT_TIMER;
                     break;
                 case BSP_FD_EVENT : 
                     read(ev->data.fd, (void *) &notify_data, 8);
+                    ed->associate.buff += notify_data;
+                    ev->events |= BSP_EVENT_EVENT;
                     break;
-                case BSP_FD_SOCKET_SERVER : 
+                case BSP_FD_SOCKET_SERVER_TCP : 
+                case BSP_FD_SOCKET_SERVER_SCTP : 
                     ev->events |= BSP_EVENT_ACCEPT;
                     break;
                 case BSP_FD_GENERAL : 
                 case BSP_FD_PIPE : 
-                case BSP_FD_SOCKET_CLIENT : 
-                case BSP_FD_SOCKET_CONNECTOR : 
+                case BSP_FD_SOCKET_SERVER_UDP : 
+                case BSP_FD_SOCKET_CLIENT_TCP : 
+                case BSP_FD_SOCKET_CLIENT_SCTP : 
+                case BSP_FD_SOCKET_CONNECTOR_TCP : 
+                case BSP_FD_SOCKET_CONNECTOR_SCTP : 
                     ev->events |= BSP_EVENT_READ;
                     break;
                 default : 
@@ -384,8 +402,14 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
             switch (ev->data.fd_type)
             {
                 case BSP_FD_GENERAL : 
-                case BSP_FD_SOCKET_CLIENT : 
-                case BSP_FD_SOCKET_CONNECTOR : 
+                case BSP_FD_SOCKET_CLIENT_TCP : 
+                case BSP_FD_SOCKET_CLIENT_SCTP : 
+                case BSP_FD_SOCKET_CLIENT_LOCAL : 
+                case BSP_FD_SOCKET_CONNECTOR_TCP : 
+                case BSP_FD_SOCKET_CONNECTOR_UDP : 
+                case BSP_FD_SOCKET_CONNECTOR_SCTP : 
+                case BSP_FD_SOCKET_CONNECTOR_LOCAL : 
+                case BSP_FD_SOCKET_SERVER_UDP : 
                     ev->events |= BSP_EVENT_WRITE;
                     break;
                 default : 
@@ -398,8 +422,12 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
         {
             switch (ev->data.fd_type)
             {
-                case BSP_FD_SOCKET_CLIENT : 
-                case BSP_FD_SOCKET_CONNECTOR : 
+                case BSP_FD_SOCKET_CLIENT_TCP : 
+                case BSP_FD_SOCKET_CLIENT_SCTP : 
+                case BSP_FD_SOCKET_CLIENT_LOCAL : 
+                case BSP_FD_SOCKET_CONNECTOR_TCP : 
+                case BSP_FD_SOCKET_CONNECTOR_SCTP : 
+                case BSP_FD_SOCKET_CONNECTOR_LOCAL : 
                     ev->events |= BSP_EVENT_LOCAL_HUP;
                     break;
                 default : 
@@ -413,8 +441,12 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
         {
             switch (ev->data.fd_type)
             {
-                case BSP_FD_SOCKET_CLIENT : 
-                case BSP_FD_SOCKET_CONNECTOR : 
+                case BSP_FD_SOCKET_CLIENT_TCP : 
+                case BSP_FD_SOCKET_CLIENT_SCTP : 
+                case BSP_FD_SOCKET_CLIENT_LOCAL : 
+                case BSP_FD_SOCKET_CONNECTOR_TCP : 
+                case BSP_FD_SOCKET_CONNECTOR_SCTP : 
+                case BSP_FD_SOCKET_CONNECTOR_LOCAL : 
                     ev->events |= BSP_EVENT_REMOTE_HUP;
                     break;
                 default : 
@@ -428,6 +460,8 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
         {
             ev->events |= BSP_EVENT_ERROR;
         }
+
+        ev->data.associate = ed->associate;
 
         return BSP_RTN_SUCCESS;
     }
