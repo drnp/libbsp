@@ -108,17 +108,34 @@ enum bsp_sock_state_e
 #define BSP_MAX_SERVER_SOCKETS          128
 
 /* Macros */
+#define S_ISSRV(s)                      (BSP_FD_SOCKET_SERVER_TCP == s->fd_type || \
+                                         BSP_FD_SOCKET_SERVER_UDP == s->fd_type || \
+                                         BSP_FD_SOCKET_SERVER_SCTP == s->fd_type || \
+                                         BSP_FD_SOCKET_SERVER_LOCAL == s->fd_type)
+#define S_ISCLT(s)                      (BSP_FD_SOCKET_CLIENT_TCP == s->fd_type || \
+                                         BSP_FD_SOCKET_CLIENT_UDP == s->fd_type || \
+                                         BSP_FD_SOCKET_CLIENT_SCTP == s->fd_type || \
+                                         BSP_FD_SOCKET_CLIENT_LOCAL == s->fd_type)
+#define S_ISCNT(s)                      (BSP_FD_SOCKET_CONNECTOR_TCP == s->fd_type || \
+                                         BSP_FD_SOCKET_CONNECTOR_UDP == s->fd_type || \
+                                         BSP_FD_SOCKET_CONNECTOR_SCTP == s->fd_type || \
+                                         BSP_FD_SOCKET_CONNECTOR_LOCAL == s->fd_type)
 
 /* Structs */
 typedef struct bsp_socket_t
 {
     // Summaries
     int                 fd;
+    BSP_FD_TYPE         fd_type;
     struct sockaddr_storage
                         saddr;
     struct addrinfo     addr;
     BSP_INET_TYPE       inet_type;
     BSP_SOCK_TYPE       sock_type;
+
+    // Buffers
+    BSP_BUFFER          read_buffer;
+    BSP_BUFFER          send_buffer;
 
     // State
     int                 state;
@@ -127,10 +144,21 @@ typedef struct bsp_socket_t
     void                *ptr;
 } BSP_SOCKET;
 
+typedef struct bsp_socket_server_t
+{
+    struct bsp_socket_t scks[BSP_MAX_SERVER_SOCKETS];
+    size_t              nscks;
+
+    // Callback
+    size_t              (* on_data)(BSP_SOCKET *, const char *, size_t);
+    void                *additional;
+} BSP_SOCKET_SERVER;
+
 typedef struct bsp_socket_client_t
 {
     struct bsp_socket_t sck;
     time_t              last_active;
+    BSP_SOCKET_SERVER   *connected_server;
     void                *additional;
 } BSP_SOCKET_CLIENT;
 
@@ -140,13 +168,6 @@ typedef struct bsp_socket_connector_t
     time_t              last_active;
     void                *additional;
 } BSP_SOCKET_CONNECTOR;
-
-typedef struct bsp_socket_server_t
-{
-    struct bsp_socket_t scks[BSP_MAX_SERVER_SOCKETS];
-    size_t              nscks;
-    void                *additional;
-} BSP_SOCKET_SERVER;
 
 /* Functions */
 /**

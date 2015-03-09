@@ -83,6 +83,8 @@ typedef struct bsp_bootstrap_options_t
     void                (*trace_recipient)(BSP_TRACE *);
 
     // Hooks
+    void                (*main_hook_former)(void);
+    void                (*main_hook_latter)(void);
     void                (*boss_hook_former)(BSP_THREAD *);
     void                (*boss_hook_latter)(BSP_THREAD *);
     void                (*acceptor_hook_former)(BSP_THREAD *);

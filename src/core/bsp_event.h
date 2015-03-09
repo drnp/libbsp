@@ -44,16 +44,30 @@
 /* Headers */
 
 /* Definations */
-#define BSP_EVENT_NONE                  0x0
-#define BSP_EVENT_READ                  0x1
-#define BSP_EVENT_WRITE                 0x2
-#define BSP_EVENT_TIMER                 0x4
-#define BSP_EVENT_SIGNAL                0x8
-#define BSP_EVENT_EVENT                 0x10
-#define BSP_EVENT_ACCEPT                0x20
-#define BSP_EVENT_LOCAL_HUP             0x40
-#define BSP_EVENT_REMOTE_HUP            0x80
-#define BSP_EVENT_ERROR                 0x100
+typedef enum bsp_event_type_t
+{
+    BSP_EVENT_NONE      = 0x0, 
+#define BSP_EVENT_NONE                  BSP_EVENT_NONE
+    BSP_EVENT_READ      = 0x1, 
+#define BSP_EVENT_READ                  BSP_EVENT_READ
+    BSP_EVENT_WRITE     = 0x2, 
+#define BSP_EVENT_WRITE                 BSP_EVENT_WRITE
+    BSP_EVENT_TIMER     = 0x4, 
+#define BSP_EVENT_TIMER                 BSP_EVENT_TIMER
+    BSP_EVENT_SIGNAL    = 0x8, 
+#define BSP_EVENT_SIGNAL                BSP_EVENT_SIGNAL
+    BSP_EVENT_EVENT     = 0x10, 
+#define BSP_EVENT_EVENT                 BSP_EVENT_EVENT
+    BSP_EVENT_ACCEPT    = 0x20, 
+#define BSP_EVENT_ACCEPT                BSP_EVENT_ACCEPT
+    BSP_EVENT_LOCAL_HUP = 0x40, 
+#define BSP_EVENT_LOCAL_HUP             BSP_EVENT_LOCAL_HUP
+    BSP_EVENT_REMOTE_HUP
+                        = 0x80, 
+#define BSP_EVENT_REMOTE_HUP            BSP_EVENT_REMOTE_HUP
+    BSP_EVENT_ERROR     = 0x100
+#define BSP_EVENT_ERROR                 BSP_EVENT_ERROR
+} BSP_EVENT_TYPE;
 
 /* Macros */
 

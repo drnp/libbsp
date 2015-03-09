@@ -62,9 +62,14 @@ typedef struct bsp_buffer_t
 #define B_PREV(b)                       b->cursor --
 #define B_CHAR(b)                       b->data[b->cursor]
 #define B_RESET(b)                      b->cursor = 0
-#define B_AVAIL(b)                      (b->len - b->cursor)
+#define B_AVAIL(b)                      (b->data_len - b->cursor)
 #define B_CURR(b)                       (b->data + b->cursor)
 #define B_ISCONST(b)                    (BSP_TRUE == b->is_const)
+
+#define B_PASS(b, n)                    b->cursor += n; \
+                                        if (b->cursor >= b->data_len) {b->cursor = 0; b->data_len = 0;}
+#define B_PASSALL(b)                    b->cursor = b->data_len = 0;
+#define B_REMAIN(b)                     (b->data_len - b->curr)
 
 /* Structs */
 
@@ -80,10 +85,15 @@ BSP_DECLARE(BSP_BUFFER *) bsp_new_buffer();
  * Delete (return back to pool) a buffer
  *
  * @param BSP_BUFFER b Buffer to delete
- *
- * @return void
  */
 BSP_DECLARE(void) bsp_del_buffer(BSP_BUFFER *b);
+
+/**
+ * Clear buffer data
+ *
+ * @param BSP_BUFFER b Buffer to clear
+ */
+BSP_DECLARE(void) bsp_clear_buffer(BSP_BUFFER *b);
 
 /**
  * Set an empty buffer const data, after set, buffer will be set to const mode

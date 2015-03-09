@@ -78,8 +78,14 @@ BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o)
     options.trace_level = o->trace_level;
     options.trace_recipient = o->trace_recipient;
     options.boss_threads = 1;
+    options.main_hook_former = o->main_hook_former;
+    options.main_hook_latter = o->main_hook_latter;
     options.boss_hook_former = o->boss_hook_former;
     options.boss_hook_latter = o->boss_hook_latter;
+    options.io_hook_former = o->io_hook_former;
+    options.io_hook_latter = o->io_hook_latter;
+    options.worker_hook_former = o->worker_hook_former;
+    options.worker_hook_latter = o->worker_hook_latter;
 
     return BSP_RTN_SUCCESS;
 }
@@ -147,8 +153,17 @@ BSP_DECLARE(int) bsp_startup()
             break;
     }
 
+    if (options.main_hook_former)
+    {
+        options.main_hook_former();
+    }
+
     // Waiting for BOSS exit
     bsp_wait_thread(t);
+    if (options.main_hook_latter)
+    {
+        options.main_hook_latter();
+    }
 
     return BSP_RTN_SUCCESS;
 }

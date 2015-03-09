@@ -168,6 +168,19 @@ BSP_DECLARE(void) bsp_del_buffer(BSP_BUFFER *b)
     return;
 }
 
+// Clear buffer data
+BSP_DECLARE(void) bsp_clear_buffer(BSP_BUFFER *b)
+{
+    if (b)
+    {
+        b->is_const = BSP_FALSE;
+        B_LEN(b) = 0;
+        B_NOW(b) = 0;
+    }
+
+    return;
+}
+
 // Set const data to en empty buffer
 BSP_DECLARE(size_t) bsp_buffer_set_const(BSP_BUFFER *b, const char *data, ssize_t len)
 {

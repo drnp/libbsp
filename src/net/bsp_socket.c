@@ -132,6 +132,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
     struct sockaddr_in *sin = NULL;
     struct sockaddr_in6 *sin6 = NULL;
     BSP_SOCKET_SERVER *srv = NULL;
+    BSP_FD_TYPE fd_type = BSP_FD_ANY;
 
     hints.ai_flags      = AI_PASSIVE;
     hints.ai_protocol   = 0;
@@ -237,10 +238,13 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
         switch (next->ai_protocol)
         {
             case IPPROTO_TCP : 
+                fd_type = BSP_FD_SOCKET_SERVER_TCP;
                 break;
             case IPPROTO_UDP : 
+                fd_type = BSP_FD_SOCKET_SERVER_UDP;
                 break;
             case IPPROTO_SCTP : 
+                fd_type = BSP_FD_SOCKET_SERVER_SCTP;
                 break;
             default : 
                 // Unsupport
@@ -342,6 +346,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
         }
 
         srv->scks[nfds].fd = fd;
+        srv->scks[nfds].fd_type = fd_type;
         srv->scks[nfds].inet_type = inet_type;
         srv->scks[nfds].sock_type = sock_type;
         memcpy(&srv->scks[nfds].saddr, (struct sockaddr_storage *) next->ai_addr, sizeof(struct sockaddr_storage));
@@ -625,8 +630,7 @@ BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_unix_connector(const char *sock_file
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path, sock_file, sizeof(addr.sun_path) - 1);
 
-        // TODO : Set Non-blocking mode
-
+        bsp_set_blocking(fd, BSP_FD_NONBLOCK);
         if (-1 == connect(fd, (struct sockaddr *) &addr, SUN_LEN(&addr)))
         {
             close(fd);
@@ -645,6 +649,16 @@ BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_unix_connector(const char *sock_file
     return cnt;
 }
 
+BSP_DECLARE(int) bsp_del_connector(BSP_SOCKET_CONNECTOR *cnt)
+{
+    if (!cnt)
+    {
+        return BSP_RTN_INVALID;
+    }
+
+    return BSP_RTN_SUCCESS;
+}
+
 // Create a new client within server accept event
 BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck)
 {
@@ -654,7 +668,7 @@ BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck)
     char ipaddr[64];
     struct sockaddr_in *clt_sin4 = NULL;
     struct sockaddr_in6 *clt_sin6 = NULL;
-    if (sck)
+    if (sck && S_ISSRV(sck))
     {
         clt = bsp_mempool_alloc(mp_client);
         if (!clt)
@@ -680,6 +694,7 @@ BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck)
 
                 bsp_set_blocking(client_fd, BSP_FD_BLOCK);
                 clt->sck.fd = client_fd;
+                clt->sck.fd_type = BSP_FD_SOCKET_CLIENT_TCP;
                 if (BSP_INET_IPV6 == sck->inet_type)
                 {
                     clt_sin6 = (struct sockaddr_in6 *) &clt->sck.saddr;
@@ -699,6 +714,8 @@ BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck)
                 break;
             case BSP_SOCK_SCTP_TO_ONE : 
             case BSP_SOCK_SCTP_TO_MANY : 
+                // TODO : SCTP accept
+                break;
             default : 
                 break;
         }
@@ -710,14 +727,106 @@ BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck)
         clt->sck.addr.ai_protocol = sck->addr.ai_protocol;
         clt->sck.addr.ai_addrlen = sck->addr.ai_addrlen;
         clt->sck.ptr = (void *) clt;
+        bsp_clear_buffer(&clt->sck.read_buffer);
+        bsp_clear_buffer(&clt->sck.send_buffer);
         srv = (BSP_SOCKET_SERVER *) sck->ptr;
         if (srv)
         {
-            // Callback
+            clt->connected_server = srv;
         }
     }
 
     return clt;
+}
+
+BSP_DECLARE(int) bsp_del_client(BSP_SOCKET_CLIENT *clt)
+{
+    if (!clt)
+    {
+        return BSP_RTN_INVALID;
+    }
+
+    bsp_mempool_free(mp_client, clt);
+
+    return BSP_RTN_SUCCESS;
+}
+
+/* Socket operations */
+BSP_PRIVATE(ssize_t) _try_read_socket(BSP_SOCKET *sck)
+{
+    if (!sck)
+    {
+        return 0;
+    }
+
+    ssize_t len = 0, tlen = 0;
+    char read_block[_BSP_SOCKET_READ_ONCE];
+    while (BSP_TRUE)
+    {
+        len = read(sck->fd, read_block, _BSP_SOCKET_READ_ONCE);
+        if (len < 0)
+        {
+            if (EINTR == errno || EWOULDBLOCK == errno || EAGAIN == errno)
+            {
+                 // Go on
+                continue;
+            }
+            else
+            {
+                // Read error
+                bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Read socket %d failed", sck->fd);
+                sck->state |= BSP_SOCK_STATE_PRECLOSE;
+                break;
+            }
+        }
+        else if (0 == len)
+        {
+            // TCP FIN
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Socket %d FIN", sck->fd);
+            sck->state |= BSP_SOCK_STATE_PRECLOSE;
+            break;
+        }
+        else
+        {
+            // Data
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Read %lld bytes from socket %d", (int64_t) len, sck->fd);
+            bsp_buffer_append(&sck->read_buffer, read_block, len);
+            tlen += len;
+
+            if (len < _BSP_SOCKET_READ_ONCE)
+            {
+                // All gone
+                break;
+            }
+        }
+    }
+
+    return tlen;
+}
+
+BSP_PRIVATE(ssize_t) _try_send_socket(BSP_SOCKET *sck)
+{
+    if (!sck || !(sck->state & BSP_SOCK_STATE_WRITABLE))
+    {
+        return 0;
+    }
+
+    ssize_t len = 0;
+    if (B_AVAIL(&sck->send_buffer))
+    {
+        len = write(sck->fd, B_CURR(&sck->send_buffer), B_AVAIL(&sck->send_buffer));
+        if (len < 0)
+        {
+            // Send error
+            bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Send socket %d failed", sck->fd);
+            sck->state |= BSP_SOCK_STATE_PRECLOSE;
+        }
+        else
+        {
+        }
+    }
+
+    return len;
 }
 
 // Proceed IO
@@ -727,21 +836,77 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
     {
         return 0;
     }
-/*
+    ssize_t len, processed;
+
     BSP_SOCKET_SERVER *srv = NULL;
     BSP_SOCKET_CLIENT *clt = NULL;
     BSP_SOCKET_CONNECTOR *cnt = NULL;
-*/
+    BSP_BUFFER *buff;
+
     if (sck->state & BSP_SOCK_STATE_ERROR)
     {
     }
 
     if (sck->state & BSP_SOCK_STATE_CLOSE)
     {
+        if (S_ISCLT(sck))
+        {
+            // Client
+            clt = (BSP_SOCKET_CLIENT *) sck->ptr;
+            if (clt)
+            {
+                srv = clt->connected_server;
+                if (srv && srv->on_disconnect)
+                {
+                    srv->on_disconnect(sck);
+                }
+            }
+
+            _close_socket(sck);
+            
+        }
     }
 
     if (sck->state & BSP_SOCK_STATE_READABLE)
     {
+        // Try read
+        len = _try_read_socket(sck);
+        buff = &sck->read_buffer;
+        if (len > 0)
+        {
+            if (S_ISCLT(sck))
+            {
+                // Client
+                clt = (BSP_SOCKET_CLIENT *) sck->ptr;
+                if (clt)
+                {
+                    srv = clt->connected_server;
+                    if (srv && srv->on_data)
+                    {
+                        processed = srv->on_data(sck, B_CURR(buff), B_AVAIL(buff));
+                        B_PASS(buff, processed)
+                    }
+                    else
+                    {
+                        B_PASSALL(buff)
+                    }
+                }
+                else
+                {
+                    B_PASSALL(buff)
+                }
+            }
+            else if (S_ISCNT(sck))
+            {
+                // Connector
+                cnt = (BSP_SOCKET_CONNECTOR *) sck->ptr;
+            }
+            else if (S_ISSRV(sck))
+            {
+                // UDP server
+                srv = (BSP_SOCKET_SERVER *) sck->ptr;
+            }
+        }
     }
 
     if (sck->state & BSP_SOCK_STATE_WRITABLE)

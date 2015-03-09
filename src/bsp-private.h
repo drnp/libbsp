@@ -62,6 +62,7 @@
 #define _BSP_THREAD_LIST_INITIAL        128
 #define _BSP_ARRAY_BUCKET_SIZE          64
 #define _BSP_HASH_SIZE_INITIAL          8
+#define _BSP_SOCKET_READ_ONCE           4096
 
 // This value is ignored since Linux 2.6.8
 #define _BSP_EPOLL_SIZE                 1024
