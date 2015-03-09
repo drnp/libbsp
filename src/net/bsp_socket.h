@@ -151,6 +151,7 @@ typedef struct bsp_socket_server_t
 
     // Callback
     size_t              (* on_data)(BSP_SOCKET *, const char *, size_t);
+    int                 (* on_disconnect)(BSP_SOCKET *);
     void                *additional;
 } BSP_SOCKET_SERVER;
 
@@ -159,6 +160,7 @@ typedef struct bsp_socket_client_t
     struct bsp_socket_t sck;
     time_t              last_active;
     BSP_SOCKET_SERVER   *connected_server;
+    int                 (* on_disconnect)(BSP_SOCKET *);
     void                *additional;
 } BSP_SOCKET_CLIENT;
 
@@ -166,6 +168,7 @@ typedef struct bsp_socket_connector_t
 {
     struct bsp_socket_t sck;
     time_t              last_active;
+    int                 (* on_disconnect)(BSP_SOCKET *);
     void                *additional;
 } BSP_SOCKET_CONNECTOR;
 
@@ -238,5 +241,23 @@ BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck);
  * @return int Status
  */
 BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck);
+
+/**
+ * Add data to send buffer
+ *
+ * @param BSP_SOCKET sck Socket to append
+ * @param string data Data to append
+ * @param size_t len Length of data
+ *
+ * @return size_t Data appended
+ */
+BSP_DECLARE(size_t) bsp_socket_append(BSP_SOCKET *sck, const char *data, ssize_t len);
+
+/**
+ * Flush send buffer, data will be sent after event set
+ *
+ * @param BSP_SOCKET sck Socket to flush
+ */
+BSP_DECLARE(void) bsp_socket_flush(BSP_SOCKET *sck);
 
 #endif  /* _NET_BSP_SOCKET_H */

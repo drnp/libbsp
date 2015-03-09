@@ -752,6 +752,30 @@ BSP_DECLARE(int) bsp_del_client(BSP_SOCKET_CLIENT *clt)
 }
 
 /* Socket operations */
+BSP_PRIVATE(void) _try_close_socket(BSP_SOCKET *sck)
+{
+    if (!sck)
+    {
+        return;
+    }
+
+    bsp_free(sck->read_buffer.data);
+    bsp_free(sck->send_buffer.data);
+    sck->read_buffer.size = 0;
+    sck->send_buffer.size = 0;
+
+    // When close ,fd will be removed from all event container automatically
+    BSP_EVENT ev;
+    ev.data.fd = sck->fd;
+    bsp_del_event(&ev);
+
+    // Avoid for CLOSE_WAIT
+    shutdown(sck->fd, SHUT_RDWR);
+    close(sck->fd);
+
+    return;
+}
+
 BSP_PRIVATE(ssize_t) _try_read_socket(BSP_SOCKET *sck)
 {
     if (!sck)
@@ -812,17 +836,25 @@ BSP_PRIVATE(ssize_t) _try_send_socket(BSP_SOCKET *sck)
     }
 
     ssize_t len = 0;
-    if (B_AVAIL(&sck->send_buffer))
+    BSP_BUFFER *buff = &sck->send_buffer;
+    if (B_AVAIL(buff))
     {
-        len = write(sck->fd, B_CURR(&sck->send_buffer), B_AVAIL(&sck->send_buffer));
+        len = write(sck->fd, B_CURR(buff), B_AVAIL(buff));
         if (len < 0)
         {
             // Send error
             bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Send socket %d failed", sck->fd);
-            sck->state |= BSP_SOCK_STATE_PRECLOSE;
+            sck->state |= BSP_SOCK_STATE_CLOSE;
+        }
+        else if (0 == len)
+        {
+            // SIGPIPE?
+            sck->state |= BSP_SOCK_STATE_CLOSE;
         }
         else
         {
+            // Some data written
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Send %lld bytes to socket %d", (int64_t) len, sck->fd);
         }
     }
 
@@ -842,13 +874,34 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
     BSP_SOCKET_CLIENT *clt = NULL;
     BSP_SOCKET_CONNECTOR *cnt = NULL;
     BSP_BUFFER *buff;
+    BSP_EVENT ev;
 
     if (sck->state & BSP_SOCK_STATE_ERROR)
     {
+        if (S_ISCLT(sck))
+        {
+            // Client
+            clt = (BSP_SOCKET_CLIENT *) sck->ptr;
+            if (clt)
+            {
+                srv = clt->connected_server;
+            }
+        }
+        else if (S_ISCNT(sck))
+        {
+            // Connector
+            cnt = (BSP_SOCKET_CONNECTOR *) sck->ptr;
+        }
+        else if (S_ISSRV(sck))
+        {
+            // UDP server
+            srv = (BSP_SOCKET_SERVER *) sck->ptr;
+        }
     }
 
     if (sck->state & BSP_SOCK_STATE_CLOSE)
     {
+        _try_close_socket(sck);
         if (S_ISCLT(sck))
         {
             // Client
@@ -860,10 +913,37 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
                 {
                     srv->on_disconnect(sck);
                 }
-            }
 
-            _close_socket(sck);
-            
+                bsp_mempool_free(mp_client, clt);
+            }
+        }
+        else if (S_ISCNT(sck))
+        {
+            // Connector
+            cnt = (BSP_SOCKET_CONNECTOR *) sck->ptr;
+            if (cnt)
+            {
+                if (cnt->on_disconnect)
+                {
+                    cnt->on_disconnect(sck);
+                }
+
+                bsp_mempool_free(mp_connector, cnt);
+            }
+        }
+        else if (S_ISSRV(sck))
+        {
+            // server
+            srv = (BSP_SOCKET_SERVER *) sck->ptr;
+            if (srv)
+            {
+                if (srv->on_disconnect)
+                {
+                    srv->on_disconnect(sck);
+                }
+
+                bsp_free(srv);
+            }
         }
     }
 
@@ -906,11 +986,51 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
                 // UDP server
                 srv = (BSP_SOCKET_SERVER *) sck->ptr;
             }
+            else
+            {
+                // Skip
+            }
         }
     }
 
     if (sck->state & BSP_SOCK_STATE_WRITABLE)
     {
+        // Try send
+        len = _try_send_socket(sck);
+        buff = &sck->send_buffer;
+        if (len > 0)
+        {
+            if (S_ISCLT(sck))
+            {
+                // Client
+                clt = (BSP_SOCKET_CLIENT *) sck->ptr;
+            }
+            else if (S_ISCNT(sck))
+            {
+                // Connector
+                cnt = (BSP_SOCKET_CONNECTOR *) sck->ptr;
+            }
+            else if (S_ISSRV(sck))
+            {
+                // UDP server
+                srv = (BSP_SOCKET_SERVER *) sck->ptr;
+            }
+            else
+            {
+                // Skip
+            }
+
+            B_PASS(buff, len);
+            if (0 == B_AVAIL(buff))
+            {
+                // No data to write
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "All datas in socket %d 's send buffer have been sent", sck->fd);
+                sck->state &= ~ BSP_SOCK_STATE_WRITABLE;
+                ev.data.fd = sck->fd;
+                ev.events = BSP_EVENT_WRITE;
+                bsp_mod_event(BSP_EVENT_REMOVE, &ev);
+            }
+        }
     }
 
     if (sck->state & BSP_SOCK_STATE_ACCEPTABLE)
@@ -919,7 +1039,50 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
 
     if (sck->state & BSP_SOCK_STATE_PRECLOSE)
     {
+        buff = &sck->send_buffer;
+        if (B_AVAIL(buff) > 0)
+        {
+            // Some data remaining
+            sck->state |= BSP_SOCK_STATE_WRITABLE;
+        }
+        else
+        {
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try closing socket %d", sck->fd);
+            sck->state |= BSP_SOCK_STATE_CLOSE;
+        }
     }
 
     return BSP_RTN_SUCCESS;
+}
+
+// Append data to send buffer of socket
+BSP_DECLARE(size_t) bsp_socket_append(BSP_SOCKET *sck, const char *data, ssize_t len)
+{
+    if (!sck || !data)
+    {
+        return 0;
+    }
+
+    BSP_BUFFER *buff = &sck->send_buffer;
+    size_t append = bsp_buffer_append(buff, data, len);
+    if (append > 0 && !(sck->state & BSP_SOCK_STATE_WRITABLE))
+    {
+        sck->state |= BSP_SOCK_STATE_WRITABLE;
+    }
+
+    return append;
+}
+
+// Flush send buffer (Add WRITE event)
+BSP_DECLARE(void) bsp_socket_flush(BSP_SOCKET *sck)
+{
+    if (sck)
+    {
+        BSP_EVENT ev;
+        ev.data.fd = sck->fd;
+        ev.events = BSP_EVENT_WRITE;
+        bsp_mod_event(BSP_EVENT_ADD, &ev);
+    }
+
+    return;
 }

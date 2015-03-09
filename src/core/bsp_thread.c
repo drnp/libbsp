@@ -95,7 +95,7 @@ void * _process(void *arg)
 
     while (me->has_loop)
     {
-        nfds = bsp_wait_event(me->event_container);
+        nfds = bsp_wait_events(me->event_container);
         for (i = 0; i < nfds; i ++)
         {
             bsp_get_active_event(me->event_container, &ev, i);

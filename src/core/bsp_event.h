@@ -44,7 +44,7 @@
 /* Headers */
 
 /* Definations */
-typedef enum bsp_event_type_t
+typedef enum bsp_event_type_e
 {
     BSP_EVENT_NONE      = 0x0, 
 #define BSP_EVENT_NONE                  BSP_EVENT_NONE
@@ -68,6 +68,14 @@ typedef enum bsp_event_type_t
     BSP_EVENT_ERROR     = 0x100
 #define BSP_EVENT_ERROR                 BSP_EVENT_ERROR
 } BSP_EVENT_TYPE;
+
+typedef enum bsp_event_modify_method_e
+{
+    BSP_EVENT_ADD       = 0x1, 
+#define BSP_EVENT_ADD                   BSP_EVENT_ADD
+    BSP_EVENT_REMOVE    = 0x2
+#define BSP_EVENT_REMOVE                BSP_EVENT_REMOVE
+} BSP_EVENT_MODIFY_METHOD;
 
 /* Macros */
 
@@ -115,7 +123,9 @@ typedef struct bsp_event_data_t
 {
     int                 fd;
     BSP_FD_TYPE         fd_type;
+    int                 events;
     union _event_data_u associate;
+    BSP_EVENT_CONTAINER *container;
 } BSP_EVENT_DATA;
 
 typedef struct bsp_event_t
@@ -167,7 +177,7 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev);
  *
  * @return int status
  */
-BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev);
+BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_MODIFY_METHOD method, BSP_EVENT *ev);
 
 /**
  * Remove an event from container
@@ -177,7 +187,7 @@ BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev);
  *
  * @return int status
  */
-BSP_DECLARE(int) bsp_del_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev);
+BSP_DECLARE(int) bsp_del_event(BSP_EVENT *ev);
 
 /**
  * Create a timer in event
@@ -187,7 +197,7 @@ BSP_DECLARE(int) bsp_del_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev);
  *
  * @return int Total event in queue
  */
-BSP_DECLARE(int) bsp_wait_event(BSP_EVENT_CONTAINER *ec);
+BSP_DECLARE(int) bsp_wait_events(BSP_EVENT_CONTAINER *ec);
 
 /**
  * Get appointed active event from container's event queue

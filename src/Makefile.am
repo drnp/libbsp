@@ -31,14 +31,18 @@ libbsp_la_SOURCES = \
 	ext/bsp_buffer.c \
 	ext/bsp_hash.h \
 	ext/bsp_hash.c \
-	net/bsp_socket.h \
-	net/bsp_socket.c \
 	utils/bsp_string.h \
 	utils/bsp_string.c \
 	utils/bsp_value.h \
 	utils/bsp_value.c \
 	utils/bsp_object.h \
-	utils/bsp_object.c
+	utils/bsp_object.c \
+	net/bsp_socket.h \
+	net/bsp_socket.c \
+	net/bsp_session.h \
+	net/bsp_session.c \
+	net/bsp_channel.h \
+	net/bsp_channel.c
 
 libbsp_la_LDFLAGS = 
 
@@ -56,10 +60,12 @@ nobase_pkginclude_HEADERS = \
 	ext/bsp_variable.h \
 	ext/bsp_hash.h \
 	ext/bsp_buffer.h \
-	net/bsp_socket.h \
 	utils/bsp_string.h \
 	utils/bsp_value.h \
-	utils/bsp_object.h
+	utils/bsp_object.h \
+	net/bsp_socket.h \
+	net/bsp_session.h \
+	net/bsp_channel.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = bsp.pc
