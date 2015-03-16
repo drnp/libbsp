@@ -44,7 +44,7 @@ AC_CHECK_FUNCS([ \
 
 AC_CHECK_FUNCS([ \
     getpagesizes \
-    memctnl
+    memcntl
 ])
 
 AC_CHECK_HEADERS([ \
@@ -58,6 +58,7 @@ AC_CHECK_HEADERS([ \
     netdb.h \
     pthread.h \
     sched.h \
+    signal.h \
     stdarg.h \
     stdint.h \
     stdlib.h \

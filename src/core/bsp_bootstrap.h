@@ -76,6 +76,12 @@ typedef struct bsp_bootstrap_options_t
     // Workers does logical process, if set to 0, 4 * [CPUCORE] will be used
     int                 worker_threads;
 
+    // Whether daemonize process
+    BSP_BOOLEAN         daemonize;
+
+    // Enlarge memory page size (Optionsal)(UNIX only)
+    BSP_BOOLEAN         enlarge_memory_page_size;
+
     // Trace severity level
     BSP_TRACE_LEVEL     trace_level;
 
@@ -93,6 +99,12 @@ typedef struct bsp_bootstrap_options_t
     void                (*io_hook_latter)(BSP_THREAD *);
     void                (*worker_hook_former)(BSP_THREAD *);
     void                (*worker_hook_latter)(BSP_THREAD *);
+
+    // Signals
+    void                (*signal_on_exit)();
+    void                (*signal_on_tstp)();
+    void                (*signal_on_usr1)();
+    void                (*signal_on_usr2)();
 } BSP_BOOTSTRAP_OPTIONS;
 
 /* Functions */

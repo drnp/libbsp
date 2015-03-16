@@ -73,4 +73,19 @@ BSP_DECLARE(int) bsp_maxnium_fds();
  * @return int Status
  */
 BSP_DECLARE(int) bsp_set_blocking(const int fd, BSP_BLOCKING_MODE mode);
+
+/**
+ * Daemonize process
+ *
+ * @return pid Child process ID
+ */
+BSP_DECLARE(pid_t) bsp_daemonize();
+
+/**
+ * Try to enlarge memory page size (Optional)
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_enable_large_pages();
+
 #endif  /* _CORE_BSP_MISC_H */

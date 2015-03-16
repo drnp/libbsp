@@ -74,6 +74,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <netdb.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
@@ -215,6 +216,7 @@ typedef enum bsp_fd_e
 #define BSP_RTN_ERR_UNKNOWN             -127
 #define BSP_RTN_ERR_MEMORY              -126
 #define BSP_RTN_ERR_THREAD              -125
+#define BSP_RTN_ERR_PROCESS             -124
 
 #define BSP_RTN_ERR_IO_ROUGH            -10
 #define BSP_RTN_ERR_IO_OPEN             -11

@@ -45,6 +45,72 @@
 BSP_PRIVATE(const char *) _tag_ = "BootStrap";
 BSP_PRIVATE(BSP_BOOTSTRAP_OPTIONS) options;
 
+// Signal handlers
+BSP_PRIVATE(void) _exit_handler(const int sig)
+{
+    if (options.signal_on_exit)
+    {
+        options.signal_on_exit();
+    }
+
+    bsp_trace_message(BSP_TRACE_NOTICE, "Signal", "Signal %d handled, process terminated", sig);
+    bsp_shutdown();
+
+    return;
+}
+
+BSP_PRIVATE(void) _tstp_handler(const int sig)
+{
+    if (options.signal_on_tstp)
+    {
+        options.signal_on_tstp();
+    }
+
+    bsp_trace_message(BSP_TRACE_NOTICE, "Signal", "Signal TSTP handled");
+
+    return;
+}
+
+BSP_PRIVATE(void) _usr1_handler(const int sig)
+{
+    if (options.signal_on_usr1)
+    {
+        options.signal_on_usr1();
+    }
+
+    bsp_trace_message(BSP_TRACE_NOTICE, "Signal", "Signal USR1 handled");
+
+    return;
+}
+
+BSP_PRIVATE(void) _usr2_handler()
+{
+    if (options.signal_on_usr2)
+    {
+        options.signal_on_usr2();
+    }
+
+    bsp_trace_message(BSP_TRACE_NOTICE, "Signal", "Signal USR2 handled");
+
+    return;
+}
+
+BSP_PRIVATE(void) _proc_signals()
+{
+    signal(SIGINT, _exit_handler);
+    signal(SIGTERM, _exit_handler);
+    signal(SIGQUIT, _exit_handler);
+    signal(SIGKILL, _exit_handler);
+    signal(SIGTSTP, _tstp_handler);
+    signal(SIGUSR1, _usr1_handler);
+    signal(SIGUSR2, _usr2_handler);
+    signal(SIGPIPE, SIG_IGN);
+
+    bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Signals set with default behaviors");
+
+    return;
+}
+
 // Initialize libbsp
 BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o)
 {
@@ -93,10 +159,22 @@ BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o)
 // Startup application. This is the main portal of an libbsp program
 BSP_DECLARE(int) bsp_startup()
 {
+    if (options.daemonize && BSP_BOOTSTRAP_SERVER == options.mode)
+    {
+        bsp_daemonize();
+    }
+
     bsp_set_trace_level(options.trace_level);
     bsp_set_trace_recipient(options.trace_recipient);
 
+    if (options.enlarge_memory_page_size)
+    {
+        // Ooooopps~~
+        bsp_enable_large_pages();
+    }
+
     bsp_maxnium_fds();
+    _proc_signals();
     bsp_event_init();
     if ((BSP_RTN_SUCCESS != bsp_thread_init()) | 
         (BSP_RTN_SUCCESS != bsp_buffer_init()) | 

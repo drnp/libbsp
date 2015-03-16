@@ -163,3 +163,99 @@ BSP_DECLARE(int) bsp_set_blocking(const int fd, BSP_BLOCKING_MODE mode)
 
     return BSP_RTN_SUCCESS;
 }
+
+// Daemonize process
+BSP_DECLARE(pid_t) bsp_daemonize()
+{
+    pid_t pid = fork();
+    switch (pid)
+    {
+        case -1 : 
+            bsp_trace_message(BSP_TRACE_ERROR, "Daemon", "Fork child proces failed");
+
+            return BSP_RTN_ERR_PROCESS;
+        case 0 : 
+            // Child returned
+            break;
+        default : 
+            // Parent process exit
+            exit(BSP_RTN_SUCCESS);
+            break;
+    }
+
+    // I am child
+    if (-1 == setsid())
+    {
+        return BSP_RTN_ERR_PROCESS;
+    }
+
+    // Redirect dtandard IO
+    int fd = open("/dev/null", O_RDWR, 0);
+    if (fd)
+    {
+        (void) dup2(fd, STDIN_FILENO);
+        (void) dup2(fd, STDOUT_FILENO);
+        (void) dup2(fd, STDERR_FILENO);
+        if (fd > STDERR_FILENO)
+        {
+            close(fd);
+        }
+    }
+    else
+    {
+        bsp_trace_message(BSP_TRACE_ERROR, "Daemon", "Open null device failed");
+    }
+
+    return pid;
+}
+
+// Enlarge memory page size
+BSP_DECLARE(int) bsp_enable_large_pages()
+{
+#if defined(HAVE_GETPAGESIZES) && defined(HAVE_MEMCNTL)
+    size_t sizes[32];
+    int avail = getpagesizes(sizes, 32);
+    if (-1 != avail)
+    {
+        size_t max = sizes[0];
+        struct memcntl_mha arg = {0};
+        int i;
+
+        for (i = 1; i < avail; ++i)
+        {
+            if (max < sizes[i])
+            {
+                max = sizes[i];
+            }
+        }
+
+        arg.mha_flags = 0;
+        arg.mha_pagesize = max;
+        arg.mha_cmd = MHA_MAPSIZE_BSSBRK;
+
+        if (-1 == memcntl(0, 0, MC_HAT_ADVISE, (caddr_t) &arg, 0, 0))
+        {
+            // Memcntl failed
+            bsp_trace_message(BSP_TRACE_ERROR, "System", "Memcntl failed");
+
+            exit(BSP_RTN_ERR_MEMORY);
+        }
+        else
+        {
+            bsp_trace_message(BSP_TRACE_INFORMATIONAL, "Sysmte", "Memory page size set to %llu", (long long unsigned int) max);
+
+            return BSP_RTN_SUCC;
+        }
+    }
+    else
+    {
+        bsp_trace_message(BSP_TRACE_ERROR, "Sysmte", "Get memory page size failed");
+
+        return BSP_RTN_ERR_MEMORY;
+    }
+#else
+    bsp_trace_message(BSP_TRACE_WARNING, "System", "HugeTLB not supported on this system");
+
+    return BSP_RTN_SUCCESS;
+#endif
+}
