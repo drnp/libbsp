@@ -56,7 +56,7 @@ typedef enum bsp_value_type_e
 #define BSP_VALUE_INT16                 BSP_VALUE_INT16
     BSP_VALUE_UINT16    = 0x4, 
 #define BSP_VALUE_UINT16                BSP_VALUE_UINT16
-    BSP_VALUE_INT32     = 0x3, 
+    BSP_VALUE_INT32     = 0x5, 
 #define BSP_VALUE_INT32                 BSP_VALUE_INT32
     BSP_VALUE_UINT32    = 0x6, 
 #define BSP_VALUE_UINT32                BSP_VALUE_UINT32
@@ -103,23 +103,51 @@ typedef enum bsp_value_type_e
 } BSP_VALUE_TYPE;
 
 /* Macros */
-#define V_BOOLEAN(v, b)                 {v->body.vint = b; v->type = BSP_VALUE_BOOLEAN;}
-#define V_INT8(v, i)                    {v->body.vint = i; v->type = BSP_VALUE_INT8;}
-#define V_UINT8(v, i)                   {v->body.vint = i; v->type = BSP_VALUE_UINT8;}
-#define V_INT16(v, i)                   {v->body.vint = i; v->type = BSP_VALUE_INT16;}
-#define V_UINT16(v, i)                  {v->body.vint = i; v->type = BSP_VALUE_UINT16;}
-#define V_INT32(v, i)                   {v->body.vint = i; v->type = BSP_VALUE_INT32;}
-#define V_UINT32(v, i)                  {v->body.vint = i; v->type = BSP_VALUE_UINT32;}
-#define V_INT64(v, i)                   {v->body.vint = i; v->type = BSP_VALUE_INT64;}
-#define V_UINT64(v, i)                  {v->body.vint = i; v->type = BSP_VALUE_UINT64;}
-#define V_INT29(v, i)                   {v->body.vint = i; v->type = BSP_VALUE_INT29;}
-#define V_INT(v, i)                     {v->body.vint = i; v->type = BSP_VALUE_INT;}
-#define V_FLOAT(v, f)                   {v->body.vfloat = f; v->type = BSP_VALUE_FLOAT;}
-#define V_DOUBLE(v, f)                  {v->body.vfloat = f; v->type = BSP_VALUE_DOUBLE;}
-#define V_STRING(v, s)                  {v->body.vptr = s; v->type = BSP_VALUE_STRING;}
-#define V_POINTER(v, p)                 {v->body.vptr = p; v->type = BSP_VALUE_POINTER;}
-#define V_OBJECT(v, o)                  {v->body.vptr = o; v->type = BSP_VALUE_OBJECT;}
-#define V_NULL(v)                       {v->type = BSP_VALUE_NULL;}
+#define V_SET_BOOLEAN(v, b)             {v->body.vint = b; v->type = BSP_VALUE_BOOLEAN;}
+#define V_SET_INT8(v, i)                {v->body.vint = i; v->type = BSP_VALUE_INT8;}
+#define V_SET_UINT8(v, i)               {v->body.vint = i; v->type = BSP_VALUE_UINT8;}
+#define V_SET_INT16(v, i)               {v->body.vint = i; v->type = BSP_VALUE_INT16;}
+#define V_SET_UINT16(v, i)              {v->body.vint = i; v->type = BSP_VALUE_UINT16;}
+#define V_SET_INT32(v, i)               {v->body.vint = i; v->type = BSP_VALUE_INT32;}
+#define V_SET_UINT32(v, i)              {v->body.vint = i; v->type = BSP_VALUE_UINT32;}
+#define V_SET_INT64(v, i)               {v->body.vint = i; v->type = BSP_VALUE_INT64;}
+#define V_SET_UINT64(v, i)              {v->body.vint = i; v->type = BSP_VALUE_UINT64;}
+#define V_SET_INT29(v, i)               {v->body.vint = i; v->type = BSP_VALUE_INT29;}
+#define V_SET_INT(v, i)                 {v->body.vint = i; v->type = BSP_VALUE_INT;}
+#define V_SET_FLOAT(v, f)               {v->body.vfloat = f; v->type = BSP_VALUE_FLOAT;}
+#define V_SET_DOUBLE(v, f)              {v->body.vfloat = f; v->type = BSP_VALUE_DOUBLE;}
+#define V_SET_STRING(v, s)              {v->body.vptr = s; v->type = BSP_VALUE_STRING;}
+#define V_SET_POINTER(v, p)             {v->body.vptr = p; v->type = BSP_VALUE_POINTER;}
+#define V_SET_OBJECT(v, o)              {v->body.vptr = o; v->type = BSP_VALUE_OBJECT;}
+#define V_SET_NULL(v)                   {v->type = BSP_VALUE_NULL;}
+
+#define V_GET_BOOLEAN(v) \
+    (BSP_VALUE_BOOLEAN == v->type) ? (BSP_BOOLEAN) v->body.vint : BSP_FALSE
+
+#define V_GET_INT(v) \
+    (BSP_VALUE_INT8 == v->type) ? (int8_t) v->body.vint : ( \
+    (BSP_VALUE_UINT8 == v->type) ? (uint8_t) v->body.vint : ( \
+    (BSP_VALUE_INT16 == v->type) ? (int16_t) v->body.vint : ( \
+    (BSP_VALUE_UINT16 == v->type) ? (uint16_t) v->body.vint : ( \
+    (BSP_VALUE_INT32 == v->type) ? (int32_t) v->body.vint : ( \
+    (BSP_VALUE_UINT32 == v->type) ? (uint32_t) v->body.vint : ( \
+    (BSP_VALUE_INT64 == v->type) ? v->body.vint : ( \
+    (BSP_VALUE_UINT64 == v->type) ? (uint64_t) v->body.vint : ( \
+    (BSP_VALUE_INT29 == v->type) ? (int32_t) v->body.vint : ( \
+    (BSP_VALUE_INT == v->type) ? (int64_t) v->body.vint : 0)))))))))
+
+#define V_GET_FLOAT(v) \
+    (BSP_VALUE_FLOAT == v->type) ? (float) v->body.vfloat : ( \
+    (BSP_VALUE_DOUBLE == v->type) ? v->body.vfloat : 0.0)
+
+#define V_GET_STRING(v) \
+    (BSP_VALUE_STRING == v->type) ? (BSP_STRING *) v->body.vptr : NULL
+
+#define V_GET_OBJECT(v) \
+    (BSP_VALUE_OBJECT == v->type) ? (BSP_OBJECT *) v->body.vptr : NULL
+
+#define V_GET_POINTER(v) \
+    (BSP_VALUE_POINTER == v->type) ? v->body.vptr : NULL
 
 /* Structs */
 union bsp_value_body_u

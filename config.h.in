@@ -79,8 +79,8 @@
 /* Define to 1 if you have the <math.h> header file. */
 #undef HAVE_MATH_H
 
-/* Define to 1 if you have the `memctnl' function. */
-#undef HAVE_MEMCTNL
+/* Define to 1 if you have the `memcntl' function. */
+#undef HAVE_MEMCNTL
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

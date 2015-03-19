@@ -131,10 +131,11 @@ BSP_DECLARE(void) bsp_del_object(BSP_OBJECT *obj);
  * Get current (at cursor position) item
  *
  * @param BSP_OBJECT obj Input object
+ * @param p assoc Index or Key of current value
  *
  * @return p BSP_VALUE
  */
-BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj);
+BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj, void **assoc);
 
 /**
  * Move cursor to next item

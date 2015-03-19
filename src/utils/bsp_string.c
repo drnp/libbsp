@@ -83,6 +83,7 @@ BSP_DECLARE(BSP_STRING *) bsp_new_string(const char *data, ssize_t len)
         return NULL;
     }
 
+    bsp_spin_init(&str->lock);
     if (data)
     {
         bsp_buffer_append(str->buf, data, len);

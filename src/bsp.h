@@ -62,15 +62,14 @@
 #elif HAVE_MALLOC_MALLOC_H
     #include <malloc/malloc.h>
 #endif
-#if HAVE_MATH_H
-    #include <math.h>
-#endif
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <netdb.h>

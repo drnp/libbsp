@@ -116,8 +116,10 @@ BSP_DECLARE(void) bsp_del_object(BSP_OBJECT *obj)
                         bsp_del_value(val);
                     }
                 }
+
                 bsp_mempool_free(mp_array, array);
             }
+
             break;
         case BSP_OBJECT_HASH : 
             hash = obj->node.hash;
@@ -132,8 +134,10 @@ BSP_DECLARE(void) bsp_del_object(BSP_OBJECT *obj)
                     item = old->lnext;
                     bsp_mempool_free(mp_hash_item, old);
                 }
+
                 bsp_mempool_free(mp_hash, hash);
             }
+
             break;
         case BSP_OBJECT_UNDETERMINED : 
         default : 
@@ -148,7 +152,7 @@ BSP_DECLARE(void) bsp_del_object(BSP_OBJECT *obj)
 
 /* Cursor operates */
 // Current value of object
-BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj)
+BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj, void **assoc)
 {
     if (!obj)
     {
@@ -163,6 +167,7 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj)
     {
         case BSP_OBJECT_SINGLE : 
             curr = obj->node.single;
+            // Ignore assoc here
             break;
         case BSP_OBJECT_ARRAY : 
             array = obj->node.array;
@@ -174,7 +179,13 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj)
                 {
                     curr = array->items[bucket][seq];
                 }
+
+                if (assoc)
+                {
+                    *assoc = &array->curr;
+                }
             }
+
             break;
         case BSP_OBJECT_HASH : 
             hash = obj->node.hash;
@@ -182,6 +193,12 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj)
             {
                 curr = hash->curr->value;
             }
+
+            if (assoc)
+            {
+                *assoc = (void *) hash->curr->key;
+            }
+
             break;
         case BSP_OBJECT_UNDETERMINED : 
         default : 
@@ -209,6 +226,7 @@ BSP_DECLARE(void) bsp_object_next(BSP_OBJECT *obj)
             {
                 array->curr ++;
             }
+
             break;
         case BSP_OBJECT_HASH : 
             hash = obj->node.hash;
@@ -216,6 +234,7 @@ BSP_DECLARE(void) bsp_object_next(BSP_OBJECT *obj)
             {
                 hash->curr = hash->curr->lnext;
             }
+
             break;
         case BSP_OBJECT_SINGLE : 
         case BSP_OBJECT_UNDETERMINED : 
@@ -245,6 +264,7 @@ BSP_DECLARE(void) bsp_object_prev(BSP_OBJECT *obj)
             {
                 array->curr --;
             }
+
             break;
         case BSP_OBJECT_HASH : 
             hash = obj->node.hash;
@@ -252,6 +272,7 @@ BSP_DECLARE(void) bsp_object_prev(BSP_OBJECT *obj)
             {
                 hash->curr = hash->curr->lprev;
             }
+
             break;
         case BSP_OBJECT_SINGLE : 
         case BSP_OBJECT_UNDETERMINED : 

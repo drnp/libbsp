@@ -48,8 +48,21 @@
 /* Macros */
 #define STR_STR(str)                    str->buf->data
 #define STR_LEN(str)                    str->buf->data_len
+#define STR_NOW(str)                    str->buf->cursor
+#define STR_NEXT(str)                   str->buf->cursor ++
+#define STR_PREV(str)                   str->buf->cursor --
+#define STR_CHAR(str)                   (unsigned char) str->buf->data[str->buf->cursor]
+#define STR_RESET(str)                  str->buf->cursor = 0
+#define STR_REMAIN(str)                 str->buf->data_len - str->buf->cursor
+#define STR_CURR(str)                   str->buf->data + str->buf->cursor
 #define STR_ISCONST(str)                (BSP_TRUE == str->b->is_const)
 #define STR_ISEQUAL(str1, str2)         ((str1) && (str2) && (str1->buf->data_len) == str2->buf->data_len) && (0 == memcmp(str1->buf->data, str2->buf->data, str1->buf->data_len))
+
+// Alias
+#define bsp_string_append(str, data, len) \
+                                        bsp_buffer_append(str->buf, data, len)
+#define bsp_string_printf(str, fmt, args...) \
+                                        bsp_buffer_printf(str->buf, fmt, args)
 
 /* Structs */
 typedef enum bsp_compress_type_e
@@ -69,6 +82,7 @@ typedef struct bsp_string_t
 {
     BSP_BUFFER          *buf;
     BSP_COMPRESS_TYPE   compress_type;
+    BSP_SPINLOCK        lock;
 } BSP_STRING;
 
 /* Functions */
