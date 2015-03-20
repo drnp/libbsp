@@ -156,7 +156,7 @@ BSP_DECLARE(void) bsp_object_prev(BSP_OBJECT *obj);
  *
  * @param BSP_OBJECT obj Input object
  */
-BSP_DECLARE(void) bsp_object_reest(BSP_OBJECT *obj);
+BSP_DECLARE(void) bsp_object_reset(BSP_OBJECT *obj);
 
 /**
  * Count items from object

@@ -71,20 +71,20 @@ BSP_DECLARE(BSP_VALUE *) bsp_new_value()
 }
 
 // Delete a value
-BSP_DECLARE(void) bsp_del_value(BSP_VALUE *v)
+BSP_DECLARE(void) bsp_del_value(BSP_VALUE *val)
 {
-    if (v)
+    if (val)
     {
-        if (BSP_VALUE_STRING == v->type)
+        if (BSP_VALUE_STRING == val->type)
         {
-            bsp_del_string((BSP_STRING *) v->body.vptr);
+            bsp_del_string((BSP_STRING *) val->body.vptr);
         }
-        else if (BSP_VALUE_OBJECT == v->type)
+        else if (BSP_VALUE_OBJECT == val->type)
         {
-            bsp_del_object((BSP_OBJECT *) v->body.vptr);
+            bsp_del_object((BSP_OBJECT *) val->body.vptr);
         }
 
-        bsp_mempool_free(mp_value, v);
+        bsp_mempool_free(mp_value, val);
     }
 
     return;

@@ -153,6 +153,19 @@ BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o)
     options.worker_hook_former = o->worker_hook_former;
     options.worker_hook_latter = o->worker_hook_latter;
 
+    bsp_event_init();
+    if ((BSP_RTN_SUCCESS != bsp_thread_init()) | 
+        (BSP_RTN_SUCCESS != bsp_buffer_init()) | 
+        (BSP_RTN_SUCCESS != bsp_string_init()) | 
+        (BSP_RTN_SUCCESS != bsp_value_init()) | 
+        (BSP_RTN_SUCCESS != bsp_object_init()) | 
+        (BSP_RTN_SUCCESS != bsp_socket_init()))
+    {
+        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Mempool initialize failed");
+
+        return BSP_RTN_FATAL;
+    }
+
     return BSP_RTN_SUCCESS;
 }
 
@@ -175,18 +188,6 @@ BSP_DECLARE(int) bsp_startup()
 
     bsp_maxnium_fds();
     _proc_signals();
-    bsp_event_init();
-    if ((BSP_RTN_SUCCESS != bsp_thread_init()) | 
-        (BSP_RTN_SUCCESS != bsp_buffer_init()) | 
-        (BSP_RTN_SUCCESS != bsp_string_init()) | 
-        (BSP_RTN_SUCCESS != bsp_value_init()) | 
-        (BSP_RTN_SUCCESS != bsp_object_init()) | 
-        (BSP_RTN_SUCCESS != bsp_socket_init()))
-    {
-        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Mempool initialize failed");
-
-        return BSP_RTN_FATAL;
-    }
 
     int i;
     BSP_THREAD *t;
@@ -249,5 +250,5 @@ BSP_DECLARE(int) bsp_startup()
 // Shutdown application. Clear all libbsp resources
 BSP_DECLARE(int) bsp_shutdown()
 {
-    return BSP_RTN_SUCCESS;
+    exit(BSP_RTN_SUCCESS);
 }

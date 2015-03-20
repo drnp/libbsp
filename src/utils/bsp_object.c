@@ -285,7 +285,7 @@ BSP_DECLARE(void) bsp_object_prev(BSP_OBJECT *obj)
 }
 
 // Reset objet, move cursor to beginning
-BSP_DECLARE(void) bsp_object_reest(BSP_OBJECT *obj)
+BSP_DECLARE(void) bsp_object_reset(BSP_OBJECT *obj)
 {
     if (!obj)
     {
@@ -596,6 +596,8 @@ BSP_DECLARE(void) bsp_object_set_array(BSP_OBJECT *obj, ssize_t idx, BSP_VALUE *
 
                 return;
             }
+
+            array->items[bucket] = new_bucket;
         }
 
         BSP_VALUE *old = array->items[bucket][seq];
