@@ -157,6 +157,8 @@ if test $ac_cv_c_endian = little; then
 fi
 ])
 
+AC_C_ENDIAN
+
 AC_OUTPUT([
 Makefile
 src/bsp.pc

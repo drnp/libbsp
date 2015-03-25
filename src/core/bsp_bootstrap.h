@@ -111,11 +111,18 @@ typedef struct bsp_bootstrap_options_t
 /**
  * Initialize libbsp
  *
- * @param BSP_OPTION o Options of bootstrap
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_init();
+
+/**
+ * Set libbsp options
+ *
+ * @param BSP_BOOTSTRAP_OPTIONS o Options
  *
  * @return int Status
  */
-BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o);
+BSP_DECLARE(int) bsp_setopt(BSP_BOOTSTRAP_OPTIONS *o);
 
 /**
  * Startup bsp application

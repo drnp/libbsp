@@ -89,6 +89,14 @@
 #include <netinet/udp.h>
 #include <arpa/inet.h>
 
+#ifndef _POSIX_PATH_MAX
+    #define _POSIX_PATH_MAX             1024
+#endif
+
+#ifndef _SYMBOL_NAME_MAX
+    #define _SYMBOL_NAME_MAX            64
+#endif
+
 // Boolean
 typedef enum bsp_boolean_e
 {
@@ -245,6 +253,23 @@ typedef enum bsp_fd_e
 #define bsp_realloc(ptr, size)          realloc(ptr, size)
 #define bsp_free(ptr)                   free(ptr)
 #define bsp_malloc_usable_size(ptr)     malloc_usable_size(ptr)
+
+#define bsp_strdup(str) \
+({ \
+    size_t len = strlen(str); \
+    void *new; \
+    if (NULL == (new = bsp_malloc(len + 1))) NULL; \
+    memcpy(new, str, len); \
+    new; \
+})
+
+#define bsp_strndup(str, len) \
+({ \
+    void *new; \
+    if (NULL == (new = bsp_malloc(len + 1))) NULL; \
+    strncpy(new, str, len); \
+    new; \
+})
 
 /* Structs */
 

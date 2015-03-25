@@ -192,11 +192,10 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_curr(BSP_OBJECT *obj, void **assoc)
             if (hash && hash->curr)
             {
                 curr = hash->curr->value;
-            }
-
-            if (assoc)
-            {
-                *assoc = (void *) hash->curr->key;
+                if (assoc)
+                {
+                    *assoc = (void *) hash->curr->key;
+                }
             }
 
             break;
@@ -376,9 +375,33 @@ BSP_PRIVATE(inline struct bsp_hash_item_t *) _find_from_hash(struct bsp_hash_t *
         uint32_t hash_key = bsp_hash(STR_STR(key), STR_LEN(key));
         struct bsp_hash_item_t *bucket = &hash->hash_table[hash_key % hash->hash_size];
         struct bsp_hash_item_t *curr = bucket->next;
-        while (curr)
+        while (curr && curr->key)
         {
             if (STR_ISEQUAL(key, curr->key))
+            {
+                ret = curr;
+                break;
+            }
+
+            curr = curr->next;
+        }
+    }
+
+    return ret;
+}
+
+// Find item from hash by original string key
+BSP_PRIVATE(inline struct bsp_hash_item_t *) _find_from_hash_original(struct bsp_hash_t *hash, const char *key)
+{
+    struct bsp_hash_item_t *ret = NULL;
+    if (hash && key && hash->hash_table)
+    {
+        uint32_t hash_key = bsp_hash(key, -1);
+        struct bsp_hash_item_t *bucket = &hash->hash_table[hash_key % hash->hash_size];
+        struct bsp_hash_item_t *curr = bucket->next;
+        while (curr && curr->key)
+        {
+            if (0 == strncmp(STR_STR(curr->key), key, STR_LEN(curr->key)))
             {
                 ret = curr;
                 break;
@@ -709,7 +732,7 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_array(BSP_OBJECT *obj, size_t idx)
     return ret;
 }
 
-// Get value from object by given key (hash)
+// Get value from object by given key (BSP_STRING) (hash)
 BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash(BSP_OBJECT *obj, BSP_STRING *key)
 {
     BSP_VALUE *ret = NULL;
@@ -720,6 +743,29 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash(BSP_OBJECT *obj, BSP_STRING *key)
         if (hash)
         {
             struct bsp_hash_item_t *item = _find_from_hash(hash, key);
+            if (item)
+            {
+                ret = item->value;
+            }
+        }
+
+        bsp_spin_unlock(&obj->lock);
+    }
+
+    return ret;
+}
+
+// Get value from object by given key (original string) (hash)
+BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash_original(BSP_OBJECT *obj, const char *key)
+{
+    BSP_VALUE *ret = NULL;
+    if (obj && key && BSP_OBJECT_HASH == obj->type)
+    {
+        bsp_spin_lock(&obj->lock);
+        struct bsp_hash_t *hash = obj->node.hash;
+        if (hash)
+        {
+            struct bsp_hash_item_t *item = _find_from_hash_original(hash, key);
             if (item)
             {
                 ret = item->value;

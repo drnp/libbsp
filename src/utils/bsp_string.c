@@ -110,7 +110,36 @@ BSP_DECLARE(void) bsp_del_string(BSP_STRING *str)
 // Generate a new string from regular file
 BSP_DECLARE(BSP_STRING *) bsp_new_string_from_file(const char *filename)
 {
-    BSP_STRING *str = NULL;
+    if (!filename)
+    {
+        return NULL;
+    }
+
+    FILE *fp = fopen(filename, "rb");
+    if (!fp)
+    {
+        bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Cannot open file %s", filename);
+
+        return NULL;
+    }
+
+    BSP_STRING *str = bsp_new_string(NULL, 0);
+    if (!str)
+    {
+        fclose(fp);
+
+        return NULL;
+    }
+
+    char buffer[8192];
+    size_t len;
+    while (!feof(fp) && !ferror(fp))
+    {
+        len = fread(buffer, 1, 8192, fp);
+        bsp_string_append(str, buffer, len);
+    }
+
+    fclose(fp);
 
     return str;
 }
@@ -122,6 +151,7 @@ BSP_DECLARE(BSP_STRING *) bsp_clone_string(BSP_STRING *original)
 
     return str;
 }
+
 /* Operations */
 // Concatenate two string into a new one
 BSP_DECLARE(BSP_STRING *) bsp_string_concat(BSP_STRING *str1, BSP_STRING *str2)

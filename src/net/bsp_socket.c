@@ -303,7 +303,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                         continue;
                     }
 
-                    bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "TCP server created on %s:%d", ipaddr, port);
+                    bsp_trace_message(BSP_TRACE_NOTICE, _tag_, "TCP server created on %s:%d", ipaddr, port);
                     sock_type = BSP_SOCK_TCP;
                 }
 
@@ -330,7 +330,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
                     continue;
                 }
 
-                bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "UDP server created on %s:%d", ipaddr, port);
+                bsp_trace_message(BSP_TRACE_NOTICE, _tag_, "UDP server created on %s:%d", ipaddr, port);
                 sock_type = BSP_SOCK_UDP;
                 break;
             case SOCK_SEQPACKET : 
@@ -410,6 +410,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_unix_server(const char *sock_file, uint
                         // TODO : Success
                         // srv = bsp_calloc(sizeof(1, BSP_SOCKET_SERVER));
                     }
+
                     umask(old_umask);
                 }
                 else
@@ -565,6 +566,7 @@ BSP_DECLARE(BSP_SOCKET_CONNECTOR *) bsp_new_net_connector(const char *addr, uint
 
                     // TODO : Generate a TCP client
                 }
+
                 break;
             case SOCK_DGRAM : 
                 // UDP
@@ -868,8 +870,8 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
     {
         return 0;
     }
-    ssize_t len, processed;
 
+    ssize_t len, processed;
     BSP_SOCKET_SERVER *srv = NULL;
     BSP_SOCKET_CLIENT *clt = NULL;
     BSP_SOCKET_CONNECTOR *cnt = NULL;
@@ -944,6 +946,10 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
 
                 bsp_free(srv);
             }
+        }
+        else
+        {
+            // Do nothing
         }
     }
 

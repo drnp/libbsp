@@ -112,7 +112,27 @@ BSP_PRIVATE(void) _proc_signals()
 }
 
 // Initialize libbsp
-BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o)
+BSP_DECLARE(int) bsp_init()
+{
+    bzero(&options, sizeof(BSP_BOOTSTRAP_OPTIONS));
+    bsp_event_init();
+    if ((BSP_RTN_SUCCESS != bsp_thread_init()) | 
+        (BSP_RTN_SUCCESS != bsp_buffer_init()) | 
+        (BSP_RTN_SUCCESS != bsp_string_init()) | 
+        (BSP_RTN_SUCCESS != bsp_value_init()) | 
+        (BSP_RTN_SUCCESS != bsp_object_init()) | 
+        (BSP_RTN_SUCCESS != bsp_socket_init()))
+    {
+        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Mempool initialize failed");
+
+        return BSP_RTN_FATAL;
+    }
+
+    return BSP_RTN_SUCCESS;
+}
+
+// Set options
+BSP_DECLARE(int) bsp_setopt(BSP_BOOTSTRAP_OPTIONS *o)
 {
     bzero(&options, sizeof(BSP_BOOTSTRAP_OPTIONS));
     int np = get_nprocs();
@@ -135,6 +155,7 @@ BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o)
             options.io_hook_latter = o->io_hook_latter;
             options.worker_hook_former = o->worker_hook_former;
             options.worker_hook_latter = o->worker_hook_latter;
+            options.daemonize = o->daemonize;
             break;
         default : 
             options.mode = BSP_BOOTSTRAP_STANDARD;
@@ -153,18 +174,8 @@ BSP_DECLARE(int) bsp_init(BSP_BOOTSTRAP_OPTIONS *o)
     options.worker_hook_former = o->worker_hook_former;
     options.worker_hook_latter = o->worker_hook_latter;
 
-    bsp_event_init();
-    if ((BSP_RTN_SUCCESS != bsp_thread_init()) | 
-        (BSP_RTN_SUCCESS != bsp_buffer_init()) | 
-        (BSP_RTN_SUCCESS != bsp_string_init()) | 
-        (BSP_RTN_SUCCESS != bsp_value_init()) | 
-        (BSP_RTN_SUCCESS != bsp_object_init()) | 
-        (BSP_RTN_SUCCESS != bsp_socket_init()))
-    {
-        bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Mempool initialize failed");
-
-        return BSP_RTN_FATAL;
-    }
+    bsp_set_trace_level(options.trace_level);
+    bsp_set_trace_recipient(options.trace_recipient);
 
     return BSP_RTN_SUCCESS;
 }
@@ -176,9 +187,6 @@ BSP_DECLARE(int) bsp_startup()
     {
         bsp_daemonize();
     }
-
-    bsp_set_trace_level(options.trace_level);
-    bsp_set_trace_recipient(options.trace_recipient);
 
     if (options.enlarge_memory_page_size)
     {

@@ -8,6 +8,12 @@
 /* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
+/* machine is big-endian */
+#undef ENDIAN_BIG
+
+/* machine is little-endian */
+#undef ENDIAN_LITTLE
+
 /* Epoll supported */
 #undef EVENT_USE_EPOLL
 

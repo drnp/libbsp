@@ -67,16 +67,7 @@
 
 // This value is ignored since Linux 2.6.8
 #define _BSP_EPOLL_SIZE                 1024
-
 #define _BSP_MAX_EVENTS                 1024
-
-#ifndef _POSIX_PATH_MAX
-    #define _POSIX_PATH_MAX             1024
-#endif
-
-#ifndef _SYMBOL_NAME_MAX
-    #define _SYMBOL_NAME_MAX            64
-#endif
 
 /**
  * Private functions

@@ -51,7 +51,7 @@ BSP_DECLARE(uint32_t) bsp_hash(const char *key, ssize_t len)
 
     if (len <= 0)
     {
-        len = strlen(key);
+        len = strnlen(key, _BSP_MAX_UNSIZED_STRLEN);
     }
 
     uint32_t a, b, c;

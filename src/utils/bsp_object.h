@@ -225,4 +225,14 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_array(BSP_OBJECT *obj, size_t idx);
  */
 BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash(BSP_OBJECT *obj, BSP_STRING *key);
 
+/**
+ * Get value from object by given key (original string) (hash)
+ *
+ * @param BSP_OBJECT obj Target object
+ * @param string key Key of hash
+ *
+ * @return p BSP_VALUE
+ */
+BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash_original(BSP_OBJECT *obj, const char *key);
+
 #endif  /* _UTILS_BSP_OBJECT_H */
