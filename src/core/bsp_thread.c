@@ -106,6 +106,7 @@ void * _process(void *arg)
             if (ev.events & BSP_EVENT_SIGNAL)
             {
                 // Signal
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Signal event triggered");
             }
 
             if (ev.events & BSP_EVENT_TIMER)
@@ -139,38 +140,16 @@ void * _process(void *arg)
 
             if (ev.events & BSP_EVENT_ACCEPT)
             {
+                // TCP / SCTP acceptable
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d become acceptable", ev.data.fd);
                 sck = (BSP_SOCKET *) ev.data.associate.ptr;
                 sck->state |= BSP_SOCK_STATE_ACCEPTABLE;
-                while (BSP_TRUE)
-                {
-                    // Do TCP accept
-                    bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try to accept a socket client");
-                    BSP_SOCKET_CLIENT *clt = bsp_new_client(sck);
-                    BSP_THREAD *t = NULL;
-
-                    if (clt)
-                    {
-                        // Add to IO thread
-                        t = bsp_select_thread(BSP_THREAD_IO);
-                        if (t)
-                        {
-                            ev.data.fd = clt->sck.fd;
-                            ev.data.associate.ptr = clt;
-                            ev.events = BSP_EVENT_READ;
-                            ev.data.fd_type = (BSP_SOCK_TCP == sck->sock_type) ? BSP_FD_SOCKET_CLIENT_TCP : BSP_FD_SOCKET_CLIENT_SCTP;
-                            bsp_add_event(t->event_container, &ev);
-                        }
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
             }
 
             if (ev.events & BSP_EVENT_LOCAL_HUP)
             {
                 // Local hup
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d hup locally");
                 sck = (BSP_SOCKET *) ev.data.associate.ptr;
                 sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
             }
@@ -178,6 +157,7 @@ void * _process(void *arg)
             if (ev.events & BSP_EVENT_REMOTE_HUP)
             {
                 // Remote hup
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d hup remotely");
                 sck = (BSP_SOCKET *) ev.data.associate.ptr;
                 sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
             }
@@ -185,6 +165,7 @@ void * _process(void *arg)
             if (ev.events & BSP_EVENT_ERROR)
             {
                 // General error
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d triggered an error");
                 sck = (BSP_SOCKET *) ev.data.associate.ptr;
                 sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_PRECLOSE;
             }

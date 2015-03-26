@@ -689,7 +689,15 @@ BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck)
                 if (-1 == client_fd)
                 {
                     bsp_mempool_free(mp_client, clt);
-                    bsp_trace_message(BSP_TRACE_ERROR, _tag_, "TCP accept failed");
+                    if (EAGAIN != errno && EWOULDBLOCK != errno)
+                    {
+                        bsp_trace_message(BSP_TRACE_ERROR, _tag_, "TCP accept failed");
+                    }
+                    else
+                    {
+                        // Queue empty
+                        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Accept queue empty");
+                    }
 
                     return NULL;
                 }
@@ -761,15 +769,20 @@ BSP_PRIVATE(void) _try_close_socket(BSP_SOCKET *sck)
         return;
     }
 
+    // Clean buffer
+    // TODO : Maintain buffer, if not too big
     bsp_free(sck->read_buffer.data);
     bsp_free(sck->send_buffer.data);
-    sck->read_buffer.size = 0;
-    sck->send_buffer.size = 0;
+    bzero(&sck->read_buffer, sizeof(BSP_BUFFER));
+    bzero(&sck->send_buffer, sizeof(BSP_BUFFER));
 
     // When close ,fd will be removed from all event container automatically
     BSP_EVENT ev;
     ev.data.fd = sck->fd;
     bsp_del_event(&ev);
+
+    // Clear state
+    sck->state = BSP_SOCK_STATE_IDLE;
 
     // Avoid for CLOSE_WAIT
     shutdown(sck->fd, SHUT_RDWR);
@@ -913,7 +926,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
                 srv = clt->connected_server;
                 if (srv && srv->on_disconnect)
                 {
-                    srv->on_disconnect(sck);
+                    srv->on_disconnect(clt);
                 }
 
                 bsp_mempool_free(mp_client, clt);
@@ -941,7 +954,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
             {
                 if (srv->on_disconnect)
                 {
-                    srv->on_disconnect(sck);
+                    //srv->on_disconnect(sck);
                 }
 
                 bsp_free(srv);
@@ -951,6 +964,9 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
         {
             // Do nothing
         }
+
+        // Stop here
+        return BSP_RTN_SUCCESS;
     }
 
     if (sck->state & BSP_SOCK_STATE_READABLE)
@@ -969,7 +985,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
                     srv = clt->connected_server;
                     if (srv && srv->on_data)
                     {
-                        processed = srv->on_data(sck, B_CURR(buff), B_AVAIL(buff));
+                        processed = srv->on_data(clt, B_CURR(buff), B_AVAIL(buff));
                         B_PASS(buff, processed)
                     }
                     else
@@ -1041,6 +1057,36 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
 
     if (sck->state & BSP_SOCK_STATE_ACCEPTABLE)
     {
+        // Try accept
+        while (BSP_TRUE)
+        {
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try to accept a socket client");
+            clt = bsp_new_client(sck);
+            if (clt)
+            {
+                // Add to IO thread
+                BSP_THREAD *t = bsp_select_thread(BSP_THREAD_IO);
+                BSP_EVENT ev;
+                if (t)
+                {
+                    ev.data.fd = clt->sck.fd;
+                    ev.data.associate.ptr = clt;
+                    ev.events = BSP_EVENT_READ;
+                    ev.data.fd_type = (BSP_SOCK_TCP == sck->sock_type) ? BSP_FD_SOCKET_CLIENT_TCP : BSP_FD_SOCKET_CLIENT_SCTP;
+                    bsp_add_event(t->event_container, &ev);
+                }
+
+                srv = clt->connected_server;
+                if (srv && srv->on_connect)
+                {
+                    srv->on_connect(clt);
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
     }
 
     if (sck->state & BSP_SOCK_STATE_PRECLOSE)

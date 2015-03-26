@@ -43,7 +43,7 @@
 #define _BSP_H
 
 // eneral
-#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150301-dev"
+#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150325-dev"
 #define BSP_PACKAGE_NAME                "BSP::BlackTail"
 #define BSP_DECLARE(type)               type
 #define BSP_PRIVATE(type)               static type

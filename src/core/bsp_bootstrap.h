@@ -116,13 +116,13 @@ typedef struct bsp_bootstrap_options_t
 BSP_DECLARE(int) bsp_init();
 
 /**
- * Set libbsp options
+ * Set libbsp options and prepare libbsp enviroments
  *
  * @param BSP_BOOTSTRAP_OPTIONS o Options
  *
  * @return int Status
  */
-BSP_DECLARE(int) bsp_setopt(BSP_BOOTSTRAP_OPTIONS *o);
+BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o);
 
 /**
  * Startup bsp application

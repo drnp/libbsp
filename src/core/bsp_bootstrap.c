@@ -132,7 +132,7 @@ BSP_DECLARE(int) bsp_init()
 }
 
 // Set options
-BSP_DECLARE(int) bsp_setopt(BSP_BOOTSTRAP_OPTIONS *o)
+BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o)
 {
     bzero(&options, sizeof(BSP_BOOTSTRAP_OPTIONS));
     int np = get_nprocs();
@@ -177,29 +177,7 @@ BSP_DECLARE(int) bsp_setopt(BSP_BOOTSTRAP_OPTIONS *o)
     bsp_set_trace_level(options.trace_level);
     bsp_set_trace_recipient(options.trace_recipient);
 
-    return BSP_RTN_SUCCESS;
-}
-
-// Startup application. This is the main portal of an libbsp program
-BSP_DECLARE(int) bsp_startup()
-{
-    if (options.daemonize && BSP_BOOTSTRAP_SERVER == options.mode)
-    {
-        bsp_daemonize();
-    }
-
-    if (options.enlarge_memory_page_size)
-    {
-        // Ooooopps~~
-        bsp_enable_large_pages();
-    }
-
-    bsp_maxnium_fds();
-    _proc_signals();
-
     int i;
-    BSP_THREAD *t;
-
     if (BSP_BOOTSTRAP_SERVER == options.mode)
     {
         bsp_trace_message(BSP_TRACE_NOTICE, _tag_, "Try to create %d acceptor threads", options.acceptor_threads);
@@ -224,9 +202,29 @@ BSP_DECLARE(int) bsp_startup()
         }
     }
 
+    return BSP_RTN_SUCCESS;
+}
+
+// Startup application. This is the main portal of an libbsp program
+BSP_DECLARE(int) bsp_startup()
+{
+    if (options.daemonize && BSP_BOOTSTRAP_SERVER == options.mode)
+    {
+        bsp_daemonize();
+    }
+
+    if (options.enlarge_memory_page_size)
+    {
+        // Ooooopps~~
+        bsp_enable_large_pages();
+    }
+
+    bsp_maxnium_fds();
+    _proc_signals();
+
     // Only 1 BOSS thread
     bsp_trace_message(BSP_TRACE_NOTICE, _tag_, "Try to create BOSS thread");
-    t = bsp_new_thread(BSP_THREAD_BOSS, options.boss_hook_former, options.boss_hook_latter);
+    BSP_THREAD *t = bsp_new_thread(BSP_THREAD_BOSS, options.boss_hook_former, options.boss_hook_latter);
 
     switch (options.mode)
     {

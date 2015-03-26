@@ -105,6 +105,26 @@ enum bsp_sock_state_e
 #define BSP_SOCK_STATE_CLOSE            BSP_SOCK_STATE_CLOSE
 };
 
+// Callback event type
+typedef enum bsp_socket_callback_e
+{
+    BSP_CALLBACK_ON_ACCEPT
+                        = 0, 
+#define BSP_CALLBACK_ON_ACCEPT          BSP_CALLBACK_ON_ACCCEPT
+    BSP_CALLBACK_ON_CONNECT
+                        = 1, 
+#define BSP_CALLBACK_ON_CONNECT         BSP_CALLBACK_ON_CONNECT
+    BSP_CALLBACK_ON_DISCONNECT
+                        = 2, 
+#define BSP_CALLBACK_ON_DISCONNECT      BSP_CALLBACK_ON_DISCONNECT
+    BSP_CALLBACK_ON_ERROR
+                        = 3, 
+#define BSP_CALLBACK_ON_ERROR           BSP_CALLBACK_ON_ERROR
+    BSP_CALLBACK_ON_DATA
+                        = 11
+#define BSP_CALLBACK_ON_DATA            BSP_CALLBACK_ON_DATA
+} BSP_SOCKET_CALLBACK;
+
 #define BSP_MAX_SERVER_SOCKETS          128
 
 /* Macros */
@@ -144,33 +164,37 @@ typedef struct bsp_socket_t
     void                *ptr;
 } BSP_SOCKET;
 
-typedef struct bsp_socket_server_t
+typedef struct bsp_socket_server_t BSP_SOCKET_SERVER;
+typedef struct bsp_socket_client_t BSP_SOCKET_CLIENT;
+typedef struct bsp_socket_connector_t BSP_SOCKET_CONNECTOR;
+
+struct bsp_socket_server_t
 {
     struct bsp_socket_t scks[BSP_MAX_SERVER_SOCKETS];
     size_t              nscks;
 
     // Callback
-    size_t              (* on_data)(BSP_SOCKET *, const char *, size_t);
-    int                 (* on_disconnect)(BSP_SOCKET *);
+    int                 (* on_connect)(BSP_SOCKET_CLIENT *);
+    int                 (* on_disconnect)(BSP_SOCKET_CLIENT *);
+    size_t              (* on_data)(BSP_SOCKET_CLIENT *, const char *, size_t);
     void                *additional;
-} BSP_SOCKET_SERVER;
+};
 
-typedef struct bsp_socket_client_t
+struct bsp_socket_client_t
 {
     struct bsp_socket_t sck;
     time_t              last_active;
     BSP_SOCKET_SERVER   *connected_server;
-    int                 (* on_disconnect)(BSP_SOCKET *);
     void                *additional;
-} BSP_SOCKET_CLIENT;
+};
 
-typedef struct bsp_socket_connector_t
+struct bsp_socket_connector_t
 {
     struct bsp_socket_t sck;
     time_t              last_active;
     int                 (* on_disconnect)(BSP_SOCKET *);
     void                *additional;
-} BSP_SOCKET_CONNECTOR;
+};
 
 /* Functions */
 /**
