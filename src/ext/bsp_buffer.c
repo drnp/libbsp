@@ -173,9 +173,14 @@ BSP_DECLARE(void) bsp_clear_buffer(BSP_BUFFER *b)
 {
     if (b)
     {
-        b->is_const = BSP_FALSE;
         B_LEN(b) = 0;
         B_NOW(b) = 0;
+
+        if (B_ISCONST(b))
+        {
+            b->is_const = BSP_FALSE;
+            b->data = NULL;
+        }
     }
 
     return;

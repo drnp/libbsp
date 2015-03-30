@@ -97,6 +97,17 @@ typedef struct bsp_string_t
 BSP_DECLARE(BSP_STRING *) bsp_new_string(const char *data, ssize_t len);
 
 /**
+ * Generate a new const string
+ * Const string means: we can just set data to it once, and it's just a reference, not real copy
+ *
+ * @param string data Data reference
+ * @param ssize_t len Length of data
+ *
+ * @return p BSP_STRING
+ */
+BSP_DECLARE(BSP_STRING *) bsp_new_const_string(const char *data, ssize_t len);
+
+/**
  * Delete a string
  *
  * @param BSP_STRING str String to delete

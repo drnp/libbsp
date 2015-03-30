@@ -94,6 +94,37 @@ BSP_DECLARE(BSP_STRING *) bsp_new_string(const char *data, ssize_t len)
     return str;
 }
 
+// Generate a const string
+BSP_DECLARE(BSP_STRING *) bsp_new_const_string(const char *data, ssize_t len)
+{
+    BSP_STRING *str = bsp_mempool_alloc(mp_string);
+    if (!str)
+    {
+        bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Create string failed");
+
+        return NULL;
+    }
+
+    str->buf = bsp_new_buffer();
+    if (!str->buf)
+    {
+        bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Create string buffer failed");
+        bsp_free(str);
+
+        return NULL;
+    }
+
+    bsp_spin_init(&str->lock);
+    if (data)
+    {
+        bsp_buffer_set_const(str->buf, data, len);
+    }
+
+    str->compress_type = BSP_COMPRESS_NONE;
+
+    return str;
+}
+
 // Delete (free) a string
 BSP_DECLARE(void) bsp_del_string(BSP_STRING *str)
 {
