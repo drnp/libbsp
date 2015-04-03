@@ -93,18 +93,27 @@ typedef struct bsp_bootstrap_options_t
     void                (*main_hook_latter)(void);
     void                (*boss_hook_former)(BSP_THREAD *);
     void                (*boss_hook_latter)(BSP_THREAD *);
+    void                (*boss_hook_timer)(BSP_THREAD *);
+    void                (*boss_hook_notify)(BSP_THREAD *t);
     void                (*acceptor_hook_former)(BSP_THREAD *);
     void                (*acceptor_hook_latter)(BSP_THREAD *);
+    void                (*acceptor_hook_timer)(BSP_THREAD *);
+    void                (*acceptor_hook_notify)(BSP_THREAD *);
     void                (*io_hook_former)(BSP_THREAD *);
     void                (*io_hook_latter)(BSP_THREAD *);
+    void                (*io_hook_timer)(BSP_THREAD *);
+    void                (*io_hook_notify)(BSP_THREAD *);
     void                (*worker_hook_former)(BSP_THREAD *);
     void                (*worker_hook_latter)(BSP_THREAD *);
+    void                (*worker_hook_timer)(BSP_THREAD *);
+    void                (*worker_hook_notify)(BSP_THREAD *);
 
     // Signals
     void                (*signal_on_exit)();
     void                (*signal_on_tstp)();
     void                (*signal_on_usr1)();
     void                (*signal_on_usr2)();
+    void                (*signal_on_hup)();
 } BSP_BOOTSTRAP_OPTIONS;
 
 /* Functions */

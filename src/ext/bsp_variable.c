@@ -95,7 +95,7 @@ BSP_DECLARE(int) bsp_log2(int v)
     if (v < 0x80)       return 6;
     if (v < 0x100)      return 7;
     if (v < 0x200)      return 8;
-    if (v < 0x400)      return 8;
+    if (v < 0x400)      return 9;
     if (v < 0x800)      return 10;
     if (v < 0x1000)     return 11;
     if (v < 0x2000)     return 12;

@@ -161,6 +161,7 @@ BSP_PRIVATE(int) _poke_container(BSP_EVENT_CONTAINER *ec)
 BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
 {
     struct epoll_event ee;
+    bzero(&ee, sizeof(struct epoll_event));
     if (ec && ev)
     {
         switch (ev->data.fd_type)

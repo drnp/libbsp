@@ -113,12 +113,20 @@ void * _process(void *arg)
             {
                 // Timer
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Timer event triggered");
+                if (me->hook_timer)
+                {
+                    me->hook_timer(me);
+                }
             }
 
             if (ev.events & BSP_EVENT_EVENT)
             {
                 // Event
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Notification event triggered");
+                if (me->hook_notify)
+                {
+                    me->hook_notify(me);
+                }
             }
 
             // Socket
@@ -186,7 +194,11 @@ void * _process(void *arg)
 }
 
 // Generate an OS thread
-BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type, void (*hook_former)(BSP_THREAD *), void (*hook_latter)(BSP_THREAD *))
+BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type, 
+                                         void (*hook_former)(BSP_THREAD *), 
+                                         void (*hook_latter)(BSP_THREAD *), 
+                                         void (*hook_timer)(BSP_THREAD *), 
+                                         void (*hook_notify)(BSP_THREAD *))
 {
     BSP_THREAD *t = bsp_calloc(1, sizeof(BSP_THREAD));
     if (!t)
@@ -219,6 +231,8 @@ BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type, void (*hook_forme
 
     t->hook_former = hook_former;
     t->hook_latter = hook_latter;
+    t->hook_timer = hook_timer;
+    t->hook_notify = hook_notify;
 
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -360,7 +374,7 @@ BSP_DECLARE(int) bsp_wait_thread(BSP_THREAD *t)
     return BSP_RTN_INVALID;
 }
 
-// Return thread
+// Return thread ordered
 BSP_DECLARE(BSP_THREAD *) bsp_select_thread(BSP_THREAD_TYPE type)
 {
     struct bsp_thread_list_t *list = NULL;
@@ -392,6 +406,38 @@ BSP_DECLARE(BSP_THREAD *) bsp_select_thread(BSP_THREAD_TYPE type)
         {
             list->curr = 0;
         }
+    }
+
+    return t;
+}
+
+// Return thread by index
+BSP_DECLARE(BSP_THREAD *) bsp_get_thread(BSP_THREAD_TYPE type, int idx)
+{
+    struct bsp_thread_list_t *list = NULL;
+    BSP_THREAD *t = NULL;
+    switch (type)
+    {
+        case BSP_THREAD_BOSS : 
+            list = &thread_pool.boss_list;
+            break;
+        case BSP_THREAD_ACCEPTOR : 
+            list = &thread_pool.acceptor_list;
+            break;
+        case BSP_THREAD_IO : 
+            list = &thread_pool.io_list;
+            break;
+        case BSP_THREAD_WORKER : 
+            list = &thread_pool.worker_list;
+            break;
+        case BSP_THREAD_NORMAL : 
+        default : 
+            break;
+    }
+
+    if (list && idx >= 0 && idx < list->total)
+    {
+        t = list->list[idx];
     }
 
     return t;

@@ -43,7 +43,7 @@
 #define _BSP_H
 
 // eneral
-#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150325-dev"
+#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150403-dev"
 #define BSP_PACKAGE_NAME                "BSP::BlackTail"
 #define BSP_DECLARE(type)               type
 #define BSP_PRIVATE(type)               static type
@@ -257,17 +257,19 @@ typedef enum bsp_fd_e
 #define bsp_strdup(str) \
 ({ \
     size_t len = strlen(str); \
-    void *new; \
+    char *new; \
     if (NULL == (new = bsp_malloc(len + 1))) NULL; \
     memcpy(new, str, len); \
+    new[len] = 0x0; \
     new; \
 })
 
 #define bsp_strndup(str, len) \
 ({ \
-    void *new; \
+    char *new; \
     if (NULL == (new = bsp_malloc(len + 1))) NULL; \
-    strncpy(new, str, len); \
+    memcpy(new, str, len); \
+    new[len] = 0x0; \
     new; \
 })
 

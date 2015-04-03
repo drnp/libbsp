@@ -124,9 +124,9 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
 {
     int fd, ret, flag;
     int nfds = 0;
-    char port_str[8];
+    char port_str[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     char ipaddr[64];
-    struct addrinfo *ai, *next;
+    struct addrinfo *ai = NULL, *next = NULL;
     struct addrinfo hints;
     struct linger ling = {0, 0};
     struct sockaddr_in *sin = NULL;
@@ -134,6 +134,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
     BSP_SOCKET_SERVER *srv = NULL;
     BSP_FD_TYPE fd_type = BSP_FD_ANY;
 
+    bzero(&hints, sizeof(struct addrinfo));
     hints.ai_flags      = AI_PASSIVE;
     hints.ai_protocol   = 0;
     hints.ai_addrlen    = 0;
@@ -349,7 +350,7 @@ BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t p
         srv->scks[nfds].fd_type = fd_type;
         srv->scks[nfds].inet_type = inet_type;
         srv->scks[nfds].sock_type = sock_type;
-        memcpy(&srv->scks[nfds].saddr, (struct sockaddr_storage *) next->ai_addr, sizeof(struct sockaddr_storage));
+        memcpy(&srv->scks[nfds].saddr, (const void *) next->ai_addr, next->ai_addrlen);
         memcpy(&srv->scks[nfds].addr, next, sizeof(struct addrinfo));
         srv->scks[nfds].addr.ai_addr = (struct sockaddr *) &srv->scks[nfds].saddr;
         srv->scks[nfds].ptr = (void *) srv;

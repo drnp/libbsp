@@ -72,7 +72,13 @@ typedef struct bsp_thread_t
     void                (*hook_former)(struct bsp_thread_t *);
     // Hook after event loop
     void                (*hook_latter)(struct bsp_thread_t *);
+    // Hook when timer triggered
+    void                (*hook_timer)(struct bsp_thread_t *);
+    // Hook when notify triggered
+    void                (*hook_notify)(struct bsp_thread_t *);
     BSP_BOOLEAN         has_loop;
+    // Additional data
+    void                *additional;
 } BSP_THREAD;
 
 struct bsp_thread_list_t
@@ -109,10 +115,16 @@ BSP_DECLARE(int) bsp_thread_init();
  * @param int type Thread type. BSP_THREAD_BOS / NORMALS will set to joinable, and ACCEPTOR / IO / WORKER will be detached
  * @param callable hook_former Hook function called before event loop
  * @param callable hook_latter Hook function called after event loop
+ * @param callable hook_timer Hook function called when timer event triggered
+ * @param callable hook_notify Hook function called when notify(event) event triggered
  *
  * @return p BSP_THREAD
  */
-BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type, void (*hook_former)(BSP_THREAD *), void (*hook_latter)(BSP_THREAD *));
+BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type, 
+                                         void (*hook_former)(BSP_THREAD *), 
+                                         void (*hook_latter)(BSP_THREAD *), 
+                                         void (*hook_timer)(BSP_THREAD *), 
+                                         void (*hook_notify)(BSP_THREAD *));
 
 /**
  * Stop and destroy an OS thread
@@ -140,5 +152,15 @@ BSP_DECLARE(int) bsp_wait_thread(BSP_THREAD *t);
  * @return p BSP_THREAD
  */
 BSP_DECLARE(BSP_THREAD *) bsp_select_thread(BSP_THREAD_TYPE type);
+
+/**
+ * Return thread by given index
+ *
+ * @param BSP_THREAD_TYPE type Thread type, BSP_THREAD_NORMAL not in pool
+ * @param int idx Index of pool
+ *
+ * @return p BSP_THREAD
+ */
+BSP_DECLARE(BSP_THREAD *) bsp_get_thread(BSP_THREAD_TYPE type, int idx);
 
 #endif  /* _CORE_BSP_THREAD_H */
