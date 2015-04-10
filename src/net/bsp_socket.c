@@ -799,49 +799,23 @@ BSP_PRIVATE(ssize_t) _try_read_socket(BSP_SOCKET *sck)
         return 0;
     }
 
-    ssize_t len = 0, tlen = 0;
-    char read_block[_BSP_SOCKET_READ_ONCE];
-    while (BSP_TRUE)
+    ssize_t len = bsp_buffer_io_read_all(&sck->read_buffer, sck->fd);
+    if (len < 0)
     {
-        len = read(sck->fd, read_block, _BSP_SOCKET_READ_ONCE);
-        if (len < 0)
-        {
-            if (EINTR == errno || EWOULDBLOCK == errno || EAGAIN == errno)
-            {
-                 // Go on
-                continue;
-            }
-            else
-            {
-                // Read error
-                bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Read socket %d failed", sck->fd);
-                sck->state |= BSP_SOCK_STATE_PRECLOSE;
-                break;
-            }
-        }
-        else if (0 == len)
-        {
-            // TCP FIN
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Socket %d FIN", sck->fd);
-            sck->state |= BSP_SOCK_STATE_PRECLOSE;
-            break;
-        }
-        else
-        {
-            // Data
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Read %lld bytes from socket %d", (int64_t) len, sck->fd);
-            bsp_buffer_append(&sck->read_buffer, read_block, len);
-            tlen += len;
-
-            if (len < _BSP_SOCKET_READ_ONCE)
-            {
-                // All gone
-                break;
-            }
-        }
+        bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Read socket %d failed", sck->fd);
+        sck->state |= BSP_SOCK_STATE_PRECLOSE;
+    }
+    else if (0 == len)
+    {
+        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Socket %d FIN", sck->fd);
+        sck->state |= BSP_SOCK_STATE_PRECLOSE;
+    }
+    else
+    {
+        // Data
     }
 
-    return tlen;
+    return len;
 }
 
 BSP_PRIVATE(ssize_t) _try_send_socket(BSP_SOCKET *sck)
@@ -975,7 +949,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
         // Try read
         len = _try_read_socket(sck);
         buff = &sck->read_buffer;
-        if (len > 0)
+        if (B_AVAIL(buff))
         {
             if (S_ISCLT(sck))
             {

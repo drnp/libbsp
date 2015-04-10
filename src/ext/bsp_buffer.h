@@ -138,4 +138,25 @@ BSP_DECLARE(size_t) bsp_buffer_printf(BSP_BUFFER *b, const char *fmt, ...);
  */
 BSP_DECLARE(size_t) bsp_buffer_fill(BSP_BUFFER *b, int code, size_t len);
 
+/**
+ * Read data from file descriptor into buffer
+ *
+ * @param BSP_BUFFER b Buffer to append
+ * @param int fd File descriptor
+ * @param size_t len Bytes to read
+ *
+ * @return ssize_t data read (<0 for error)
+ */
+BSP_DECLARE(ssize_t) bsp_buffer_io_read(BSP_BUFFER *b, int fd, size_t len);
+
+/**
+ * Read all data from file descriptor into buffer
+ *
+ * @param BSP_BUFFER b Buffer to append
+ * @param int fd File descriptor
+ *
+ * @return ssize_t data read (<0 for error)
+ */
+BSP_DECLARE(ssize_t) bsp_buffer_io_read_all(BSP_BUFFER *b, int fd);
+
 #endif  /* _EXT_BSP_BUFFER_H */

@@ -73,6 +73,7 @@ BSP_DECLARE(int) bsp_buffer_init()
     if (!mp_buffer)
     {
         bsp_trace_message(BSP_TRACE_ALERT, _tag_, "Cannot create object pool");
+
         return BSP_RTN_ERR_MEMORY;
     }
 
@@ -285,4 +286,91 @@ BSP_DECLARE(size_t) bsp_buffer_fill(BSP_BUFFER *b, int code, size_t len)
     B_LEN(b) = need;
 
     return len;
+}
+
+// Read file descriptor to buffer
+BSP_DECLARE(ssize_t) bsp_buffer_io_read(BSP_BUFFER *b, int fd, size_t len)
+{
+    if (!b || !fd || !len)
+    {
+        return 0;
+    }
+
+    size_t need = B_LEN(b) + len;
+    if (need > B_SIZE(b))
+    {
+        if (BSP_RTN_SUCCESS != _enlarge_buffer(b, need))
+        {
+            // Enlarge error
+            return 0;
+        }
+    }
+
+    // Try read
+    ssize_t ret = read(fd, B_DATA(b) + B_LEN(b), len);
+    if (ret > 0)
+    {
+        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Read %d bytes from fd %d to buffer", (int) ret, fd);
+        B_LEN(b) += ret;
+    }
+
+    return ret;
+}
+
+// Read all data from file descriptor to buffer
+BSP_DECLARE(ssize_t) bsp_buffer_io_read_all(BSP_BUFFER *b, int fd)
+{
+    if (!b || !fd)
+    {
+        return 0;
+    }
+
+    ssize_t len = 0, tlen = 0;
+    while (BSP_TRUE)
+    {
+        size_t need = B_LEN(b) + _BSP_FD_READ_ONCE;
+        if (need > B_SIZE(b))
+        {
+            if (BSP_RTN_SUCCESS != _enlarge_buffer(b, need))
+            {
+                // Enlarge error
+                break;
+            }
+        }
+
+        len = read(fd, B_DATA(b) + B_LEN(b), _BSP_FD_READ_ONCE);
+        if (len < 0)
+        {
+            if (EINTR == errno || EWOULDBLOCK == errno || EAGAIN == errno)
+            {
+                 // Go on
+                continue;
+            }
+            else
+            {
+                // Error
+                break;
+            }
+        }
+        else if (0 == len)
+        {
+            // TCP FIN
+            tlen = 0;
+            break;
+        }
+        else
+        {
+            // Data already in buffer -_-
+            tlen += len;
+            B_LEN(b) += len;
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Read %d bytes from fd %d to buffer", (int) len, fd);
+            if (len < _BSP_FD_READ_ONCE)
+            {
+                // All gone
+                break;
+            }
+        }
+    }
+
+    return tlen;
 }
