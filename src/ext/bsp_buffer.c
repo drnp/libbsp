@@ -95,7 +95,7 @@ BSP_PRIVATE(int) _enlarge_buffer(BSP_BUFFER *b, size_t size)
         }
         else
         {
-            bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Enlarge buffer failed");
+            bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Enlarge buffer to %llu bytes failed", (unsigned long long int) new_size);
         }
 
         return BSP_RTN_ERR_MEMORY;
@@ -136,6 +136,12 @@ BSP_PRIVATE(int) _shrink_buffer(BSP_BUFFER *b)
 BSP_DECLARE(BSP_BUFFER *) bsp_new_buffer()
 {
     BSP_BUFFER *b = bsp_mempool_alloc(mp_buffer);
+    if (b)
+    {
+        B_LEN(b) = 0;
+        B_NOW(b) = 0;
+        b->is_const = BSP_FALSE;
+    }
 
     return b;
 }
@@ -161,6 +167,11 @@ BSP_DECLARE(void) bsp_del_buffer(BSP_BUFFER *b)
             {
                 _shrink_buffer(b);
             }
+        }
+        else
+        {
+            B_DATA(b) = NULL;
+            B_SIZE(b) = 0;
         }
 
         bsp_mempool_free(mp_buffer, (void *) b);
@@ -190,7 +201,7 @@ BSP_DECLARE(void) bsp_clear_buffer(BSP_BUFFER *b)
 // Set const data to en empty buffer
 BSP_DECLARE(size_t) bsp_buffer_set_const(BSP_BUFFER *b, const char *data, ssize_t len)
 {
-    if (!b || !data || B_DATA(b) || B_ISCONST(b))
+    if (!b || !data || B_ISCONST(b))
     {
         return 0;
     }
@@ -198,6 +209,11 @@ BSP_DECLARE(size_t) bsp_buffer_set_const(BSP_BUFFER *b, const char *data, ssize_
     if (len < 0)
     {
         len = strnlen(data, _BSP_MAX_UNSIZED_STRLEN);
+    }
+
+    if (B_DATA(b))
+    {
+        bsp_free(B_DATA(b));
     }
 
     B_DATA(b) = (char *) data;

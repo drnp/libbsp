@@ -162,6 +162,8 @@ BSP_DECLARE(void) bsp_mempool_free(BSP_MEMPOOL *m, void *item)
             else
             {
                 bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Mempool free list realloc failed");
+                bsp_spin_unlock(&m->lock);
+
                 return;
             }
         }
