@@ -293,6 +293,7 @@ BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type,
 
             if (list->total < list->list_size)
             {
+                t->id = list->total;
                 list->list[list->total ++] = t;
                 bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Add thread %llu to pool", (uint64_t) t->pid);
             }

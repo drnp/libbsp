@@ -160,6 +160,15 @@ BSP_DECLARE(BSP_EVENT_CONTAINER *) bsp_new_event_container();
 BSP_DECLARE(int) bsp_del_event_container(BSP_EVENT_CONTAINER *ec);
 
 /**
+ * Send notification to container
+ *
+ * @param BSP_EVENT_CONTAINER ec Container to notice
+ *
+ * @return int state
+ */
+BSP_DECLARE(int) bsp_poke_event_container(BSP_EVENT_CONTAINER *ec);
+
+/**
  * Add an event to container
  *
  * @param BSP_EVENT_CONTAINER ec Target container

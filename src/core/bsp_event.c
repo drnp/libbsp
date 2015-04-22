@@ -122,7 +122,7 @@ BSP_DECLARE(BSP_EVENT_CONTAINER *) bsp_new_event_container()
     ev.data.associate.buff = 0;
     ev.events = BSP_EVENT_EVENT;
     bsp_add_event(ec, &ev);
-    bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Create notification event of container");
+    bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Create notification event of container %d", epoll_fd);
 
     return ec;
 }
@@ -144,7 +144,7 @@ BSP_DECLARE(int) bsp_del_event_container(BSP_EVENT_CONTAINER *ec)
 }
 
 // Send notify to container
-BSP_PRIVATE(int) _poke_container(BSP_EVENT_CONTAINER *ec)
+BSP_DECLARE(int) bsp_poke_event_container(BSP_EVENT_CONTAINER *ec)
 {
     if (ec)
     {
@@ -234,8 +234,8 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
         ee.data.fd = ev->data.fd;
         if (0 == epoll_ctl(ec->epoll_fd, EPOLL_CTL_ADD, ev->data.fd, &ee))
         {
-            _poke_container(ec);
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Add event %d to container with event %d", ev->data.fd, ed->events);
+            bsp_poke_event_container(ec);
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Add event %d to container %d with event %d", ev->data.fd, ec->epoll_fd, ed->events);
 
             return BSP_RTN_SUCCESS;
         }
@@ -311,7 +311,7 @@ BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_MODIFY_METHOD method, BSP_EVENT *ev)
         ee.data.fd = ev->data.fd;
         if (0 == epoll_ctl(ed->container->epoll_fd, EPOLL_CTL_MOD, ev->data.fd, &ee))
         {
-            _poke_container(ed->container);
+            bsp_poke_event_container(ed->container);
             bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Modify event %d from container with event %d", ev->data.fd, ed->events);
 
             return BSP_RTN_SUCCESS;

@@ -102,6 +102,14 @@ typedef enum bsp_value_type_e
 #define BSP_VALUE_NULL                  BSP_VALUE_NULL
 } BSP_VALUE_TYPE;
 
+typedef enum bsp_endian_type_e
+{
+    BSP_LITTLE_ENDIAN   = 0, 
+#define BSP_LITTLE_ENDIAN               BSP_LITTLE_ENDIAN
+    BSP_BIG_ENDIAN      = 1
+#define BSP_BIG_ENDIAN                  BSP_BIG_ENDIAN
+} BSP_ENDIAN_TYPE;
+
 /* Macros */
 #define V_SET_BOOLEAN(v, b)             {v->body.vint = b; v->type = BSP_VALUE_BOOLEAN;}
 #define V_SET_INT8(v, i)                {v->body.vint = i; v->type = BSP_VALUE_INT8;}
@@ -178,5 +186,16 @@ BSP_DECLARE(BSP_VALUE *) bsp_new_value();
  * @param BSP_VALUE v Value to delete
  */
 BSP_DECLARE(void) bsp_del_value(BSP_VALUE *v);
+
+/**
+ * Get value from stream
+ *
+ * @param string data Input stream
+ * @param p value Pointer of BSP_VALUE
+ * @param int endian Endian type of stream
+ *
+ * @return int Length read
+ */
+int bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian);
 
 #endif  /* _UTILS_BSP_VALUE_H */
