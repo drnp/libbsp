@@ -108,22 +108,26 @@ int bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian)
     {
         case BSP_VALUE_BOOLEAN : 
         case BSP_VALUE_INT8 : 
+        case BSP_VALUE_UINT8 : 
             value->body.vint = (int64_t) (int8_t) data[0];
             len = 1;
             break;
         case BSP_VALUE_INT16 : 
+        case BSP_VALUE_UINT16 : 
             value->body.vint = (BSP_BIG_ENDIAN == endian) ? 
                 ((int64_t) ((int8_t) data[0] << 8 | (uint8_t) data[1])) : 
                 ((int64_t) ((uint8_t) data[0] | (int8_t) data[1] << 8));
             len = 2;
             break;
         case BSP_VALUE_INT32 : 
+        case BSP_VALUE_UINT32 : 
             value->body.vint = (BSP_BIG_ENDIAN == endian) ? 
                 ((int64_t) ((int8_t) data[0] << 24 | (uint8_t) data[1] << 16 | (uint8_t) data[2] << 8 | (uint8_t) data[3])) : 
                 ((int64_t) ((uint8_t) data[0] | (uint8_t) data[1] << 8 | (uint8_t) data[2] << 16 | (int8_t) data[3] << 24));
             len = 4;
             break;
         case BSP_VALUE_INT64 : 
+        case BSP_VALUE_UINT64 : 
             value->body.vint = (BSP_BIG_ENDIAN == endian) ? 
                 ((int64_t) (((int8_t) data[0] << 24 | (uint8_t) data[1] << 16 | (uint8_t) data[2] << 8 | (uint8_t) data[3])) << 32) + 
                 ((int64_t) ((uint8_t) data[4] << 24 | (uint8_t) data[5] << 16 | (uint8_t) data[6] << 8 | (uint8_t) data[7])) : 
@@ -189,6 +193,223 @@ int bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian)
             break;
         default : 
             // 0
+            break;
+    }
+
+    return len;
+}
+
+/* Value into stream */
+int bsp_set_value(char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian)
+{
+    if (!data || !value)
+    {
+        return 0;
+    }
+
+    int len = 0;
+    uint64_t vint = (uint64_t) value->body.vint;
+    float vfloat = 0.0;
+    double vdouble = 0.0;
+    switch (value->type)
+    {
+        case BSP_VALUE_BOOLEAN : 
+        case BSP_VALUE_INT8 : 
+        case BSP_VALUE_UINT8 : 
+            data[0] = (char) value->body.vint;
+            len = 1;
+            break;
+        case BSP_VALUE_INT16 : 
+        case BSP_VALUE_UINT16 : 
+            if (BSP_BIG_ENDIAN == endian)
+            {
+                data[0] = (char) ((vint >> 8) & 255);
+                data[1] = (char) (vint && 255);
+            }
+            else
+            {
+                data[1] = (char) ((vint >> 8) & 255);
+                data[0] = (char) (vint && 255);
+            }
+
+            len = 2;
+            break;
+        case BSP_VALUE_INT32 : 
+        case BSP_VALUE_UINT32 : 
+            if (BSP_BIG_ENDIAN == endian)
+            {
+                data[0] = (char) ((vint >> 24) & 255);
+                data[1] = (char) ((vint >> 16) & 255);
+                data[2] = (char) ((vint >> 8) & 255);
+                data[3] = (char) (vint && 255);
+            }
+            else
+            {
+                data[3] = (char) ((vint >> 24) & 255);
+                data[2] = (char) ((vint >> 16) & 255);
+                data[1] = (char) ((vint >> 8) & 255);
+                data[0] = (char) (vint && 255);
+            }
+
+            len = 4;
+            break;
+        case BSP_VALUE_INT64 : 
+        case BSP_VALUE_UINT64 : 
+            if (BSP_BIG_ENDIAN == endian)
+            {
+                data[0] = (char) ((vint >> 56) & 255);
+                data[1] = (char) ((vint >> 48) & 255);
+                data[2] = (char) ((vint >> 40) & 255);
+                data[3] = (char) ((vint >> 32) & 255);
+                data[4] = (char) ((vint >> 24) & 255);
+                data[5] = (char) ((vint >> 16) & 255);
+                data[6] = (char) ((vint >> 8) & 255);
+                data[7] = (char) (vint && 255);
+            }
+            else
+            {
+                data[7] = (char) ((vint >> 56) & 255);
+                data[6] = (char) ((vint >> 48) & 255);
+                data[5] = (char) ((vint >> 40) & 255);
+                data[4] = (char) ((vint >> 32) & 255);
+                data[3] = (char) ((vint >> 24) & 255);
+                data[2] = (char) ((vint >> 16) & 255);
+                data[1] = (char) ((vint >> 8) & 255);
+                data[0] = (char) (vint && 255);
+            }
+
+            len = 8;
+            break;
+        case BSP_VALUE_INT29 : 
+            if (vint <= 0x7F)
+            {
+                data[0] = (char) (vint);
+                len = 1;
+            }
+            else if (vint <= 0x3FFF)
+            {
+                data[0] = (char) ((vint >> 7) | 128);
+                data[1] = (char) (vint & 127);
+                len = 2;
+            }
+            else if (len <= 0x1FFFFF)
+            {
+                data[0] = (char) ((vint >> 14) | 128);
+                data[1] = (char) (((vint >> 7) & 127) | 128);
+                data[2] = (char) (vint & 127);
+                len = 3;
+            }
+            else
+            {
+                data[0] = (char) ((vint >> 22) | 128);
+                data[1] = (char) (((vint >> 15) & 127) | 128);
+                data[2] = (char) (((vint >> 8) & 127) | 128);
+                data[3] = (char) (vint & 255);
+                len = 4;
+            }
+
+            break;
+        case BSP_VALUE_INT : 
+            if (vint <= 0x7F)
+            {
+                data[0] = (char) (vint);
+                len = 1;
+            }
+            else if (vint <= 0x3FFF)
+            {
+                data[0] = (char) ((vint >> 7) | 128);
+                data[1] = (char) (vint & 127);
+                len = 2;
+            }
+            else if (len <= 0x1FFFFF)
+            {
+                data[0] = (char) ((vint >> 14) | 128);
+                data[1] = (char) (((vint >> 7) & 127) | 128);
+                data[2] = (char) (vint & 127);
+                len = 3;
+            }
+            else if (len <= 0xFFFFFFF)
+            {
+                data[0] = (char) ((vint >> 21) | 128);
+                data[1] = (char) (((vint >> 14) & 127) | 128);
+                data[2] = (char) (((vint >> 7) & 127) | 128);
+                data[3] = (char) (vint & 127);
+                len = 4;
+            }
+            else if (len <= 0x7FFFFFFFF)
+            {
+                data[0] = (char) ((vint >> 28) | 128);
+                data[1] = (char) (((vint >> 21) & 127) | 128);
+                data[2] = (char) (((vint >> 14) & 127) | 128);
+                data[3] = (char) (((vint >> 7) & 127) | 128);
+                data[4] = (char) (vint & 127);
+                len = 5;
+            }
+            else if (len <= 0x3FFFFFFFFFF)
+            {
+                data[0] = (char) ((vint >> 35) | 128);
+                data[1] = (char) (((vint >> 28) & 127) | 128);
+                data[2] = (char) (((vint >> 21) & 127) | 128);
+                data[3] = (char) (((vint >> 14) & 127) | 128);
+                data[4] = (char) (((vint >> 7) & 127) | 128);
+                data[5] = (char) (vint & 127);
+                len = 6;
+            }
+            else if (len <= 0x1FFFFFFFFFFFF)
+            {
+                data[0] = (char) ((vint >> 42) | 128);
+                data[1] = (char) (((vint >> 35) & 127) | 128);
+                data[2] = (char) (((vint >> 28) & 127) | 128);
+                data[3] = (char) (((vint >> 21) & 127) | 128);
+                data[4] = (char) (((vint >> 14) & 127) | 128);
+                data[5] = (char) (((vint >> 7) & 127) | 128);
+                data[6] = (char) (vint & 127);
+                len = 7;
+            }
+            else if (len <= 0xFFFFFFFFFFFFFF)
+            {
+                data[0] = (char) ((vint >> 49) | 128);
+                data[1] = (char) (((vint >> 42) & 127) | 128);
+                data[2] = (char) (((vint >> 35) & 127) | 128);
+                data[3] = (char) (((vint >> 28) & 127) | 128);
+                data[4] = (char) (((vint >> 21) & 127) | 128);
+                data[5] = (char) (((vint >> 14) & 127) | 128);
+                data[6] = (char) (((vint >> 7) & 127) | 128);
+                data[7] = (char) (vint & 127);
+                len = 8;
+            }
+            else
+            {
+                data[0] = (char) ((vint >> 57) | 128);
+                data[1] = (char) (((vint >> 50) & 127) | 128);
+                data[2] = (char) (((vint >> 43) & 127) | 128);
+                data[3] = (char) (((vint >> 36) & 127) | 128);
+                data[4] = (char) (((vint >> 29) & 127) | 128);
+                data[5] = (char) (((vint >> 22) & 127) | 128);
+                data[6] = (char) (((vint >> 15) & 127) | 128);
+                data[7] = (char) (((vint >> 8) & 127) | 128);
+                data[8] = (char) (vint & 127);
+                len = 9;
+            }
+
+            break;
+        case BSP_VALUE_FLOAT : 
+            vfloat = (float) value->body.vfloat;
+            memcpy(data, &vfloat, sizeof(float));
+            len = sizeof(float);
+            break;
+        case BSP_VALUE_DOUBLE : 
+            vdouble = value->body.vfloat;
+            memcpy(data, &vdouble, sizeof(double));
+            len = sizeof(double);
+            break;
+        case BSP_VALUE_STRING : 
+        case BSP_VALUE_OBJECT : 
+        case BSP_VALUE_POINTER : 
+            memcpy(data, &value->body.vptr, sizeof(void *));
+            len = sizeof(void *);
+            break;
+        default : 
             break;
     }
 

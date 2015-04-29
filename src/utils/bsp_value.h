@@ -198,4 +198,15 @@ BSP_DECLARE(void) bsp_del_value(BSP_VALUE *v);
  */
 int bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian);
 
+/**
+ * Set value to stream
+ *
+ * @param string data Target stream
+ * @param p value Input value
+ * @param int endian Endian type of stream
+ *
+ * @return int Length wrote
+ */
+int bsp_set_value(char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian);
+
 #endif  /* _UTILS_BSP_VALUE_H */
