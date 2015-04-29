@@ -67,7 +67,7 @@ nobase_pkginclude_HEADERS = \
 	net/bsp_session.h \
 	net/bsp_channel.h
 
-pkgconfigdir = $(libdir)/pkgconfig
+pkgconfigdir = $(datadir)/pkgconfig
 pkgconfig_DATA = bsp.pc
 
 EXTRA_DIST = \
