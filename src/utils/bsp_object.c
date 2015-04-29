@@ -675,10 +675,10 @@ BSP_DECLARE(void) bsp_object_set_hash(BSP_OBJECT *obj, BSP_STRING *key, BSP_VALU
             {
                 // Successfully
                 hash->nitems ++;
-                if (hash->nitems > 8 * hash->hash_size)
+                if (hash->nitems > 4 * hash->hash_size)
                 {
                     // Rehash
-                    _rebuild_hash(hash, hash->hash_size * 8);
+                    _rebuild_hash(hash, hash->hash_size * 16);
                 }
             }
         }
