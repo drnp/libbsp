@@ -221,3 +221,30 @@ BSP_DECLARE(int) bsp_string_decompress(BSP_STRING *str)
 
     return BSP_RTN_INVALID;
 }
+
+// For some reason, some old compiler does not support the "Statement expression".
+// So I move bsp_str(n)dup macro here as a normal function -_-
+char * bsp_strdup(const char *str)
+{
+    size_t len = strlen(str);
+    char *new = bsp_malloc(len + 1);
+    if (new)
+    {
+        memcpy(new, str, len);
+        new[len] = 0x0;
+    }
+
+    return new;
+}
+
+char * bsp_strndup(const char *str, size_t len)
+{
+    char *new = bsp_malloc(len + 1);
+    if (new)
+    {
+        memcpy(new, str, len);
+        new[len] = 0x0;
+    }
+
+    return new;
+}

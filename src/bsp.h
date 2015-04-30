@@ -254,7 +254,7 @@ typedef enum bsp_fd_e
 #define bsp_realloc(ptr, size)          realloc(ptr, size)
 #define bsp_free(ptr)                   free(ptr)
 #define bsp_malloc_usable_size(ptr)     malloc_usable_size(ptr)
-
+/* Move to string.c as function
 #define bsp_strdup(str) \
 ({ \
     size_t len = strlen(str); \
@@ -273,7 +273,7 @@ typedef enum bsp_fd_e
     new[len] = 0x0; \
     new; \
 })
-
+*/
 /* Structs */
 
 /* Functions */

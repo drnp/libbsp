@@ -170,4 +170,23 @@ BSP_DECLARE(int) bsp_string_compress(BSP_STRING *str, BSP_COMPRESS_TYPE compress
  */
 BSP_DECLARE(int) bsp_string_decompress(BSP_STRING *str);
 
+/**
+ * Copy a string as a new one
+ *
+ * @param string str Source
+ *
+ * @return p Pointer of new string
+ */
+char * bsp_strdup(const char *str);
+
+/**
+ * Copy a lengthed string as a new one
+ *
+ * @param string str Source
+ * @param int len Length of source
+ *
+ * @return p Pointer of new string
+ */
+char * bsp_strndup(const char *str, size_t len);
+
 #endif  /* _UTILS_BSP_STRING_H */
