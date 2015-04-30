@@ -4,6 +4,7 @@ AM_CPPFLAGS = \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\"
 
 AM_CFLAGS = \
+	-O3
 	-Wall\
 	-g
 
