@@ -149,9 +149,9 @@ BSP_DECLARE(int) bsp_poke_event_container(BSP_EVENT_CONTAINER *ec)
     if (ec)
     {
         uint64_t v = 1;
-        write(ec->notify_fd, (const void *) &v, 8);
+        ssize_t ret = write(ec->notify_fd, (const void *) &v, 8);
 
-        return BSP_RTN_SUCCESS;
+        return (8 == ret) ? BSP_RTN_SUCCESS : BSP_RTN_ERR_GENERAL;
     }
 
     return BSP_RTN_INVALID;
@@ -410,6 +410,7 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
         BSP_EVENT_DATA *ed = &(event_datas[ev->data.fd]);
         ev->data.fd_type = ed->fd_type;
         ev->events = BSP_EVENT_NONE;
+        ssize_t ret = 0;
         if (ee->events & EPOLLIN)
         {
             switch (ev->data.fd_type)
@@ -418,14 +419,22 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
                     ev->events |= BSP_EVENT_SIGNAL;
                     break;
                 case BSP_FD_TIMER : 
-                    read(ev->data.fd, (void *) &notify_data, 8);
-                    ed->associate.timer += notify_data;
-                    ev->events |= BSP_EVENT_TIMER;
+                    ret = read(ev->data.fd, (void *) &notify_data, 8);
+                    if (8 == ret)
+                    {
+                        ed->associate.timer += notify_data;
+                        ev->events |= BSP_EVENT_TIMER;
+                    }
+
                     break;
                 case BSP_FD_EVENT : 
-                    read(ev->data.fd, (void *) &notify_data, 8);
-                    ed->associate.buff += notify_data;
-                    ev->events |= BSP_EVENT_EVENT;
+                    ret = read(ev->data.fd, (void *) &notify_data, 8);
+                    if (8 == ret)
+                    {
+                        ed->associate.buff += notify_data;
+                        ev->events |= BSP_EVENT_EVENT;
+                    }
+
                     break;
                 case BSP_FD_SOCKET_SERVER_TCP : 
                 case BSP_FD_SOCKET_SERVER_SCTP : 
