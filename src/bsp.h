@@ -41,6 +41,7 @@
 #ifndef _BSP_H
 
 #define _BSP_H
+#define _GNU_SOURCE
 
 // eneral
 #define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150403-dev"
