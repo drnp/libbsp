@@ -717,7 +717,7 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_array(BSP_OBJECT *obj, size_t idx)
     BSP_VALUE *ret = NULL;
     if (obj && BSP_OBJECT_ARRAY == obj->type)
     {
-        bsp_spin_lock(&obj->lock);
+        //bsp_spin_lock(&obj->lock);
         struct bsp_array_t *array = obj->node.array;
         size_t bucket = (idx / _BSP_ARRAY_BUCKET_SIZE);
         size_t seq = (idx % _BSP_ARRAY_BUCKET_SIZE);
@@ -726,7 +726,7 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_array(BSP_OBJECT *obj, size_t idx)
             ret = array->items[bucket][seq];
         }
 
-        bsp_spin_unlock(&obj->lock);
+        //bsp_spin_unlock(&obj->lock);
     }
 
     return ret;
@@ -738,7 +738,7 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash(BSP_OBJECT *obj, BSP_STRING *key)
     BSP_VALUE *ret = NULL;
     if (obj && key && BSP_OBJECT_HASH == obj->type)
     {
-        bsp_spin_lock(&obj->lock);
+        //bsp_spin_lock(&obj->lock);
         struct bsp_hash_t *hash = obj->node.hash;
         if (hash)
         {
@@ -749,7 +749,7 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash(BSP_OBJECT *obj, BSP_STRING *key)
             }
         }
 
-        bsp_spin_unlock(&obj->lock);
+        //bsp_spin_unlock(&obj->lock);
     }
 
     return ret;
@@ -761,7 +761,7 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash_original(BSP_OBJECT *obj, const c
     BSP_VALUE *ret = NULL;
     if (obj && key && BSP_OBJECT_HASH == obj->type)
     {
-        bsp_spin_lock(&obj->lock);
+        //bsp_spin_lock(&obj->lock);
         struct bsp_hash_t *hash = obj->node.hash;
         if (hash)
         {
@@ -772,7 +772,7 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_hash_original(BSP_OBJECT *obj, const c
             }
         }
 
-        bsp_spin_unlock(&obj->lock);
+        //bsp_spin_unlock(&obj->lock);
     }
 
     return ret;

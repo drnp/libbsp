@@ -703,7 +703,7 @@ BSP_DECLARE(BSP_SOCKET_CLIENT *) bsp_new_client(BSP_SOCKET *sck)
                     return NULL;
                 }
 
-                bsp_set_blocking(client_fd, BSP_FD_BLOCK);
+                bsp_set_blocking(client_fd, BSP_FD_NONBLOCK);
                 clt->sck.fd = client_fd;
                 clt->sck.fd_type = BSP_FD_SOCKET_CLIENT_TCP;
                 if (BSP_INET_IPV6 == sck->inet_type)
@@ -839,7 +839,12 @@ BSP_PRIVATE(ssize_t) _try_send_socket(BSP_SOCKET *sck)
         else if (0 == len)
         {
             // SIGPIPE?
-            sck->state |= BSP_SOCK_STATE_CLOSE;
+            if (BSP_FD_SOCKET_CLIENT_TCP == sck->fd_type || BSP_FD_SOCKET_CONNECTOR_TCP == sck->fd_type)
+            {
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "TCP FIN of socket %d occurred", sck->fd);
+            }
+
+            sck->state |= BSP_SOCK_STATE_PRECLOSE;
         }
         else
         {
@@ -891,6 +896,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
 
     if (sck->state & BSP_SOCK_STATE_CLOSE)
     {
+        // Try close
         _try_close_socket(sck);
         if (S_ISCLT(sck))
         {
@@ -988,6 +994,8 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
                 // Skip
             }
         }
+
+        sck->state &= ~(BSP_SOCK_STATE_READABLE);
     }
 
     if (sck->state & BSP_SOCK_STATE_WRITABLE)
@@ -1041,9 +1049,9 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
             {
                 // Add to IO thread
                 BSP_THREAD *t = bsp_select_thread(BSP_THREAD_IO);
-                BSP_EVENT ev;
                 if (t)
                 {
+                    BSP_EVENT ev;
                     ev.data.fd = clt->sck.fd;
                     ev.data.associate.ptr = clt;
                     ev.events = BSP_EVENT_READ;
@@ -1059,6 +1067,8 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
             }
             else
             {
+                sck->state &= ~(BSP_SOCK_STATE_ACCEPTABLE);
+
                 break;
             }
         }
@@ -1092,9 +1102,9 @@ BSP_DECLARE(size_t) bsp_socket_append(BSP_SOCKET *sck, const char *data, ssize_t
 
     BSP_BUFFER *buff = &sck->send_buffer;
     size_t append = bsp_buffer_append(buff, data, len);
-    if (append > 0 && !(sck->state & BSP_SOCK_STATE_WRITABLE))
+    if (append > 0)
     {
-        sck->state |= BSP_SOCK_STATE_WRITABLE;
+        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Append %lld bytes to socket %d", (long long int) append, sck->fd);
     }
 
     return append;

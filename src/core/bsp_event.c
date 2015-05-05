@@ -269,10 +269,12 @@ BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_MODIFY_METHOD method, BSP_EVENT *ev)
 
         if (BSP_EVENT_REMOVE == method)
         {
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Remove event %d from event %d", ev->events, ev->data.fd);
             ed->events &= ~(ev->events);
         }
         else
         {
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Add event %d to event %d", ev->events, ev->data.fd);
             ed->events |= ev->events;
         }
 
@@ -312,7 +314,7 @@ BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_MODIFY_METHOD method, BSP_EVENT *ev)
         if (0 == epoll_ctl(ed->container->epoll_fd, EPOLL_CTL_MOD, ev->data.fd, &ee))
         {
             bsp_poke_event_container(ed->container);
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Modify event %d from container with event %d", ev->data.fd, ed->events);
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Modify event %d from container with mask %d", ev->data.fd, ed->events);
 
             return BSP_RTN_SUCCESS;
         }
@@ -405,7 +407,7 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
             return BSP_RTN_ERR_GENERAL;
         }
 
-        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try to fetch event %d from container", ee->data.fd);
+        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try to fetch event %d from container : %d", ee->data.fd, ee->events);
         ev->data.fd = ee->data.fd;
         BSP_EVENT_DATA *ed = &(event_datas[ev->data.fd]);
         ev->data.fd_type = ed->fd_type;

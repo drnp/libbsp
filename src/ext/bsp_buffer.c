@@ -359,12 +359,7 @@ BSP_DECLARE(ssize_t) bsp_buffer_io_read_all(BSP_BUFFER *b, int fd)
         {
             if (EINTR == errno || EWOULDBLOCK == errno || EAGAIN == errno)
             {
-                 // Go on
-                continue;
-            }
-            else
-            {
-                // Error
+                 // Break
                 break;
             }
         }

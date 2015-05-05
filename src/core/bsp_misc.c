@@ -161,6 +161,8 @@ BSP_DECLARE(int) bsp_set_blocking(const int fd, BSP_BLOCKING_MODE mode)
         return BSP_RTN_ERR_IO_BLOCK;
     }
 
+    bsp_trace_message(BSP_TRACE_DEBUG, "File", "Set fd %d blocking mode to %d", fd, mode);
+
     return BSP_RTN_SUCCESS;
 }
 
