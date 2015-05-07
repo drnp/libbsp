@@ -159,6 +159,16 @@ fi
 
 AC_C_ENDIAN
 
+# BSP Spinlock
+trybspspin="no"
+AC_ARG_ENABLE([bsp-spinlock], 
+    [AS_HELP_STRING([--enable-bsp-spinlock], [Use BSP.Spinlock replace to pthread lock])], 
+    [trybspspin=$enableval]
+)
+if test "$trybspspin" = "yes"; then
+    AC_DEFINE([ENABLE_BSP_SPINLOCK], 1, [Enable BSP.Spinlock])
+fi
+
 AC_OUTPUT([
 Makefile
 src/bsp.pc

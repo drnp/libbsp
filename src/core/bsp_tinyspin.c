@@ -57,7 +57,7 @@ BSP_PRIVATE(inline uint8_t) _spin_cas(uint8_t compare, uint8_t val, uint8_t *loc
     return ret;
 }
 
-BSP_PRIVATE(inline void) _spin_sleep(struct bsp_spinlock_t *lock)
+BSP_PRIVATE(inline void) _spin_sleep(BSP_TINY_SPINLOCK *lock)
 {
     if (!lock)
     {
@@ -79,7 +79,7 @@ BSP_PRIVATE(inline void) _spin_sleep(struct bsp_spinlock_t *lock)
     return;
 }
 
-BSP_PRIVATE(inline uint8_t) _spin_trylock(struct bsp_spinlock_t *lock)
+BSP_PRIVATE(inline uint8_t) _spin_trylock(BSP_TINY_SPINLOCK *lock)
 {
     if (!lock)
     {
@@ -90,7 +90,7 @@ BSP_PRIVATE(inline uint8_t) _spin_trylock(struct bsp_spinlock_t *lock)
 }
 
 // Initialize
-BSP_DECLARE(void) bsp_tiny_spin_init(struct bsp_spinlock_t *lock)
+BSP_DECLARE(void) bsp_tiny_spin_init(BSP_TINY_SPINLOCK *lock)
 {
     if (lock)
     {
@@ -102,7 +102,7 @@ BSP_DECLARE(void) bsp_tiny_spin_init(struct bsp_spinlock_t *lock)
 }
 
 // Try lock
-BSP_DECLARE(void) bsp_tiny_spin_lock(struct bsp_spinlock_t *lock)
+BSP_DECLARE(void) bsp_tiny_spin_lock(BSP_TINY_SPINLOCK *lock)
 {
     if (!lock)
     {
@@ -125,7 +125,7 @@ BSP_DECLARE(void) bsp_tiny_spin_lock(struct bsp_spinlock_t *lock)
 }
 
 // Try unlock
-BSP_DECLARE(void) bsp_tiny_spin_unlock(struct bsp_spinlock_t *lock)
+BSP_DECLARE(void) bsp_tiny_spin_unlock(BSP_TINY_SPINLOCK *lock)
 {
     if (!lock)
     {
@@ -139,7 +139,7 @@ BSP_DECLARE(void) bsp_tiny_spin_unlock(struct bsp_spinlock_t *lock)
 }
 
 // Destroy lock
-BSP_DECLARE(void) bsp_tiny_spin_destroy(struct bsp_spinlock_t *lock)
+BSP_DECLARE(void) bsp_tiny_spin_destroy(BSP_TINY_SPINLOCK *lock)
 {
     // DO NOTHING
 

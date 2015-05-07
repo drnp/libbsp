@@ -481,6 +481,8 @@ BSP_PRIVATE(inline BSP_BOOLEAN) _insert_to_hash(struct bsp_hash_t *hash, BSP_STR
             }
 
             hash->tail = item;
+            item->lnext = NULL;
+
             // Insert into hash
             uint32_t hash_key = bsp_hash(STR_STR(key), STR_LEN(key));
             struct bsp_hash_item_t *bucket = &hash->hash_table[hash_key % hash->hash_size];

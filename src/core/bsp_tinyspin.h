@@ -50,11 +50,11 @@
 /* Macros */
 
 /* Structs */
-struct bsp_spinlock_t
+typedef struct bsp_tiny_spinlock_t
 {
     uint8_t             _lock;
     uint8_t             _loop_times;
-};
+} BSP_TINY_SPINLOCK;
 
 /* Functions */
 /**
@@ -64,7 +64,7 @@ struct bsp_spinlock_t
  *
  * @return void
  */
-BSP_DECLARE(void) bsp_tiny_spin_init(struct bsp_spinlock_t *lock);
+BSP_DECLARE(void) bsp_tiny_spin_init(BSP_TINY_SPINLOCK *lock);
 
 /**
  * Try to lock a spin
@@ -73,7 +73,7 @@ BSP_DECLARE(void) bsp_tiny_spin_init(struct bsp_spinlock_t *lock);
  *
  * @return void
  */
-BSP_DECLARE(void) bsp_tiny_spin_lock(struct bsp_spinlock_t *lock);
+BSP_DECLARE(void) bsp_tiny_spin_lock(BSP_TINY_SPINLOCK *lock);
 
 /**
  * Unlock a locked spin
@@ -82,7 +82,7 @@ BSP_DECLARE(void) bsp_tiny_spin_lock(struct bsp_spinlock_t *lock);
  *
  * @return void
  */
-BSP_DECLARE(void) bsp_tiny_spin_unlock(struct bsp_spinlock_t *lock);
+BSP_DECLARE(void) bsp_tiny_spin_unlock(BSP_TINY_SPINLOCK *lock);
 
 /**
  * Destroy a spin
@@ -92,6 +92,6 @@ BSP_DECLARE(void) bsp_tiny_spin_unlock(struct bsp_spinlock_t *lock);
  *
  * @return void
  */
-BSP_DECLARE(void) bsp_tiny_spin_destroy(struct bsp_spinlock_t *lock);
+BSP_DECLARE(void) bsp_tiny_spin_destroy(BSP_TINY_SPINLOCK *lock);
 
 #endif  /* _CORE_BSP_TINYSPIN_H */

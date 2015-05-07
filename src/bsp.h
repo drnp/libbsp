@@ -173,24 +173,27 @@ typedef enum bsp_fd_e
 #define BSP_FD_UNKNOWN                  BSP_FD_UNKNOWN
 } BSP_FD_TYPE;
 
+#include "core/bsp_tinyspin.h"
+
 // Spinlock
 #ifdef ENABLE_BSP_SPINLOCK
-    #include "core/bsp_tinyspin.h"
-    typedef struct bsp_tiny_spinlock_t  BSP_SPINLOCK;
+    typedef BSP_TINY_SPINLOCK           BSP_SPINLOCK;
+    #define BSP_SPINLOCK                BSP_TINY_SPINLOCK
     #define BSP_SPINLOCK_INITIALIZER    {._lock = _SPIN_FREE, ._loop_times = 0}
     #define bsp_spin_init(lock)         bsp_tiny_spin_init(lock)
-    #define bsp_spin_lock(lock)         bsp_tiny_spin_lock(lock)
+    #define bsp_spin_lock(lock)         fprintf(stderr, "bsp\n"); bsp_tiny_spin_lock(lock)
     #define bsp_spin_unlock(lock)       bsp_tiny_spin_unlock(lock)
     #define BSP_spin_destroy(lock)      bsp_tiny_spin_destroy(lock)
 #else
-    #include <pthread.h>
     typedef pthread_spinlock_t          BSP_SPINLOCK;
+    #define BSP_SPINLOCK                pthread_spinlock_t
     #define BSP_SPINLOCK_INITIALIZER    1
     #define bsp_spin_init(lock)         pthread_spin_init(lock, 0)
-    #define bsp_spin_lock(lock)         pthread_spin_lock(lock)
+    #define bsp_spin_lock(lock)         fprintf(stderr, "pthread\n"); pthread_spin_lock(lock)
     #define bsp_spin_unlock(lock)       pthread_spin_unlock(lock)
     #define bsp_spin_destroy            pthread_spin_destroy(lock)
 #endif
+
 
 // Headers
 #include "core/bsp_debug.h"

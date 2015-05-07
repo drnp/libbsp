@@ -8,6 +8,9 @@
 /* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
+/* Enable BSP.Spinlock */
+#undef ENABLE_BSP_SPINLOCK
+
 /* machine is big-endian */
 #undef ENDIAN_BIG
 
