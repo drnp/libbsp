@@ -119,6 +119,100 @@ BSP_PRIVATE(void) _maximize_socket_buffer(const int fd)
     return;
 }
 
+/* Socket operations */
+BSP_PRIVATE(void) _try_close_socket(BSP_SOCKET *sck)
+{
+    if (!sck)
+    {
+        return;
+    }
+
+    // Clean buffer
+    // TODO : Maintain buffer, if not too big
+    bsp_free(sck->read_buffer.data);
+    bsp_free(sck->send_buffer.data);
+    bzero(&sck->read_buffer, sizeof(BSP_BUFFER));
+    bzero(&sck->send_buffer, sizeof(BSP_BUFFER));
+
+    // When close ,fd will be removed from all event container automatically
+    BSP_EVENT ev;
+    ev.data.fd = sck->fd;
+    bsp_del_event(&ev);
+
+    // Clear state
+    sck->state = BSP_SOCK_STATE_IDLE;
+
+    // Avoid for CLOSE_WAIT
+    shutdown(sck->fd, SHUT_RDWR);
+    close(sck->fd);
+
+    return;
+}
+
+BSP_PRIVATE(ssize_t) _try_read_socket(BSP_SOCKET *sck)
+{
+    if (!sck)
+    {
+        return 0;
+    }
+
+    ssize_t len = bsp_buffer_io_read_all(&sck->read_buffer, sck->fd);
+    if (len < 0)
+    {
+        bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Read socket %d failed", sck->fd);
+        sck->state |= BSP_SOCK_STATE_PRECLOSE;
+    }
+    else if (0 == len)
+    {
+        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Socket %d FIN", sck->fd);
+        sck->state |= BSP_SOCK_STATE_PRECLOSE;
+    }
+    else
+    {
+        // Data
+    }
+
+    return len;
+}
+
+BSP_PRIVATE(ssize_t) _try_send_socket(BSP_SOCKET *sck)
+{
+    if (!sck || !(sck->state & BSP_SOCK_STATE_WRITABLE))
+    {
+        return 0;
+    }
+
+    ssize_t len = 0;
+    BSP_BUFFER *buff = &sck->send_buffer;
+    if (B_AVAIL(buff))
+    {
+        len = write(sck->fd, B_CURR(buff), B_AVAIL(buff));
+        if (len < 0)
+        {
+            // Send error
+            bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Send socket %d failed", sck->fd);
+            sck->state |= BSP_SOCK_STATE_CLOSE;
+        }
+        else if (0 == len)
+        {
+            // SIGPIPE?
+            if (BSP_FD_SOCKET_CLIENT_TCP == sck->fd_type || BSP_FD_SOCKET_CONNECTOR_TCP == sck->fd_type)
+            {
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "TCP FIN of socket %d occurred", sck->fd);
+            }
+
+            sck->state |= BSP_SOCK_STATE_PRECLOSE;
+        }
+        else
+        {
+            // Some data written
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Send %lld bytes to socket %d", (int64_t) len, sck->fd);
+        }
+    }
+
+    return len;
+}
+
 // Create a network server
 BSP_DECLARE(BSP_SOCKET_SERVER *) bsp_new_net_server(const char *addr, uint16_t port, BSP_INET_TYPE inet_type, BSP_SOCK_TYPE sock_type)
 {
@@ -762,100 +856,6 @@ BSP_DECLARE(int) bsp_del_client(BSP_SOCKET_CLIENT *clt)
     return BSP_RTN_SUCCESS;
 }
 
-/* Socket operations */
-BSP_PRIVATE(void) _try_close_socket(BSP_SOCKET *sck)
-{
-    if (!sck)
-    {
-        return;
-    }
-
-    // Clean buffer
-    // TODO : Maintain buffer, if not too big
-    bsp_free(sck->read_buffer.data);
-    bsp_free(sck->send_buffer.data);
-    bzero(&sck->read_buffer, sizeof(BSP_BUFFER));
-    bzero(&sck->send_buffer, sizeof(BSP_BUFFER));
-
-    // When close ,fd will be removed from all event container automatically
-    BSP_EVENT ev;
-    ev.data.fd = sck->fd;
-    bsp_del_event(&ev);
-
-    // Clear state
-    sck->state = BSP_SOCK_STATE_IDLE;
-
-    // Avoid for CLOSE_WAIT
-    shutdown(sck->fd, SHUT_RDWR);
-    close(sck->fd);
-
-    return;
-}
-
-BSP_PRIVATE(ssize_t) _try_read_socket(BSP_SOCKET *sck)
-{
-    if (!sck)
-    {
-        return 0;
-    }
-
-    ssize_t len = bsp_buffer_io_read_all(&sck->read_buffer, sck->fd);
-    if (len < 0)
-    {
-        bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Read socket %d failed", sck->fd);
-        sck->state |= BSP_SOCK_STATE_PRECLOSE;
-    }
-    else if (0 == len)
-    {
-        bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Socket %d FIN", sck->fd);
-        sck->state |= BSP_SOCK_STATE_PRECLOSE;
-    }
-    else
-    {
-        // Data
-    }
-
-    return len;
-}
-
-BSP_PRIVATE(ssize_t) _try_send_socket(BSP_SOCKET *sck)
-{
-    if (!sck || !(sck->state & BSP_SOCK_STATE_WRITABLE))
-    {
-        return 0;
-    }
-
-    ssize_t len = 0;
-    BSP_BUFFER *buff = &sck->send_buffer;
-    if (B_AVAIL(buff))
-    {
-        len = write(sck->fd, B_CURR(buff), B_AVAIL(buff));
-        if (len < 0)
-        {
-            // Send error
-            bsp_trace_message(BSP_TRACE_ERROR, _tag_, "Send socket %d failed", sck->fd);
-            sck->state |= BSP_SOCK_STATE_CLOSE;
-        }
-        else if (0 == len)
-        {
-            // SIGPIPE?
-            if (BSP_FD_SOCKET_CLIENT_TCP == sck->fd_type || BSP_FD_SOCKET_CONNECTOR_TCP == sck->fd_type)
-            {
-                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "TCP FIN of socket %d occurred", sck->fd);
-            }
-
-            sck->state |= BSP_SOCK_STATE_PRECLOSE;
-        }
-        else
-        {
-            // Some data written
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Send %lld bytes to socket %d", (int64_t) len, sck->fd);
-        }
-    }
-
-    return len;
-}
-
 // Proceed IO
 BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
 {
@@ -871,6 +871,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
     BSP_BUFFER *buff;
     BSP_EVENT ev;
 
+    // Socket error
     if (sck->state & BSP_SOCK_STATE_ERROR)
     {
         if (S_ISCLT(sck))
@@ -880,12 +881,20 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
             if (clt)
             {
                 srv = clt->connected_server;
+                if (srv && srv->on_error)
+                {
+                    srv->on_error(clt);
+                }
             }
         }
         else if (S_ISCNT(sck))
         {
             // Connector
             cnt = (BSP_SOCKET_CONNECTOR *) sck->ptr;
+            if (cnt->on_error)
+            {
+                cnt->on_error(cnt);
+            }
         }
         else if (S_ISSRV(sck))
         {
@@ -894,62 +903,24 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
         }
     }
 
-    if (sck->state & BSP_SOCK_STATE_CLOSE)
+    // Preclose (Send first, if data left in send buffer)
+    if (sck->state & BSP_SOCK_STATE_PRECLOSE)
     {
-        // Try close
-        _try_close_socket(sck);
-        if (S_ISCLT(sck))
+        buff = &sck->send_buffer;
+        if (B_AVAIL(buff) > 0)
         {
-            // Client
-            clt = (BSP_SOCKET_CLIENT *) sck->ptr;
-            if (clt)
-            {
-                srv = clt->connected_server;
-                if (srv && srv->on_disconnect)
-                {
-                    srv->on_disconnect(clt);
-                }
-
-                bsp_mempool_free(mp_client, clt);
-            }
-        }
-        else if (S_ISCNT(sck))
-        {
-            // Connector
-            cnt = (BSP_SOCKET_CONNECTOR *) sck->ptr;
-            if (cnt)
-            {
-                if (cnt->on_disconnect)
-                {
-                    cnt->on_disconnect(sck);
-                }
-
-                bsp_mempool_free(mp_connector, cnt);
-            }
-        }
-        else if (S_ISSRV(sck))
-        {
-            // server
-            srv = (BSP_SOCKET_SERVER *) sck->ptr;
-            if (srv)
-            {
-                if (srv->on_disconnect)
-                {
-                    //srv->on_disconnect(sck);
-                }
-
-                bsp_free(srv);
-            }
+            // Some data remaining
+            sck->state |= BSP_SOCK_STATE_WRITABLE;
         }
         else
         {
-            // Do nothing
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try closing socket %d", sck->fd);
         }
 
-        // Stop here
-        return BSP_RTN_SUCCESS;
+        sck->state |= BSP_SOCK_STATE_CLOSE;
     }
 
+    // Try read
     if (sck->state & BSP_SOCK_STATE_READABLE)
     {
         // Try read
@@ -998,6 +969,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
         sck->state &= ~(BSP_SOCK_STATE_READABLE);
     }
 
+    // Try write
     if (sck->state & BSP_SOCK_STATE_WRITABLE)
     {
         // Try send
@@ -1038,6 +1010,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
         }
     }
 
+    // Server accept
     if (sck->state & BSP_SOCK_STATE_ACCEPTABLE)
     {
         // Try accept
@@ -1074,19 +1047,61 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
         }
     }
 
-    if (sck->state & BSP_SOCK_STATE_PRECLOSE)
+        // Real close
+    if (sck->state & BSP_SOCK_STATE_CLOSE)
     {
-        buff = &sck->send_buffer;
-        if (B_AVAIL(buff) > 0)
+        // Try close
+        _try_close_socket(sck);
+        if (S_ISCLT(sck))
         {
-            // Some data remaining
-            sck->state |= BSP_SOCK_STATE_WRITABLE;
+            // Client
+            clt = (BSP_SOCKET_CLIENT *) sck->ptr;
+            if (clt)
+            {
+                srv = clt->connected_server;
+                if (srv && srv->on_disconnect)
+                {
+                    srv->on_disconnect(clt);
+                }
+
+                bsp_mempool_free(mp_client, clt);
+            }
+        }
+        else if (S_ISCNT(sck))
+        {
+            // Connector
+            cnt = (BSP_SOCKET_CONNECTOR *) sck->ptr;
+            if (cnt)
+            {
+                if (cnt->on_disconnect)
+                {
+                    cnt->on_disconnect(cnt);
+                }
+
+                bsp_mempool_free(mp_connector, cnt);
+            }
+        }
+        else if (S_ISSRV(sck))
+        {
+            // server
+            srv = (BSP_SOCKET_SERVER *) sck->ptr;
+            if (srv)
+            {
+                if (srv->on_disconnect)
+                {
+                    //srv->on_disconnect(sck);
+                }
+
+                bsp_free(srv);
+            }
         }
         else
         {
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Try closing socket %d", sck->fd);
-            sck->state |= BSP_SOCK_STATE_CLOSE;
+            // Do nothing
         }
+
+        // Stop here
+        return BSP_RTN_SUCCESS;
     }
 
     return BSP_RTN_SUCCESS;
@@ -1118,6 +1133,21 @@ BSP_DECLARE(void) bsp_socket_flush(BSP_SOCKET *sck)
         BSP_EVENT ev;
         ev.data.fd = sck->fd;
         ev.events = BSP_EVENT_WRITE;
+        bsp_mod_event(BSP_EVENT_ADD, &ev);
+    }
+
+    return;
+}
+
+// Close socket
+BSP_DECLARE(void) bsp_socket_close(BSP_SOCKET *sck)
+{
+    if (sck)
+    {
+        BSP_EVENT ev;
+        ev.data.fd = sck->fd;
+        ev.events = BSP_EVENT_WRITE;
+        sck->state |= BSP_SOCK_STATE_PRECLOSE;
         bsp_mod_event(BSP_EVENT_ADD, &ev);
     }
 

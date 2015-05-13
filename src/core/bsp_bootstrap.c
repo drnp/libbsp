@@ -221,6 +221,12 @@ BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o)
     options.worker_hook_timer = o->worker_hook_timer;
     options.worker_hook_notify = o->worker_hook_notify;
 
+    options.signal_on_exit = o->signal_on_exit;
+    options.signal_on_usr1 = o->signal_on_usr1;
+    options.signal_on_usr2 = o->signal_on_usr2;
+    options.signal_on_tstp = o->signal_on_tstp;
+    options.signal_on_hup = o->signal_on_hup;
+
     bsp_set_trace_level(options.trace_level);
     bsp_set_trace_recipient(options.trace_recipient);
 

@@ -176,6 +176,7 @@ struct bsp_socket_server_t
     // Callback
     int                 (* on_connect)(BSP_SOCKET_CLIENT *);
     int                 (* on_disconnect)(BSP_SOCKET_CLIENT *);
+    int                 (* on_error)(BSP_SOCKET_CLIENT *);
     size_t              (* on_data)(BSP_SOCKET_CLIENT *, const char *, size_t);
     void                *additional;
 };
@@ -192,7 +193,10 @@ struct bsp_socket_connector_t
 {
     struct bsp_socket_t sck;
     time_t              last_active;
-    int                 (* on_disconnect)(BSP_SOCKET *);
+    int                 (* on_connect)(BSP_SOCKET_CONNECTOR *);
+    int                 (* on_disconnect)(BSP_SOCKET_CONNECTOR *);
+    int                 (* on_error)(BSP_SOCKET_CONNECTOR *);
+    size_t              (* on_data)(BSP_SOCKET_CONNECTOR *, const char *, size_t);
     void                *additional;
 };
 
@@ -283,5 +287,12 @@ BSP_DECLARE(size_t) bsp_socket_append(BSP_SOCKET *sck, const char *data, ssize_t
  * @param BSP_SOCKET sck Socket to flush
  */
 BSP_DECLARE(void) bsp_socket_flush(BSP_SOCKET *sck);
+
+/**
+ * Close socket
+ *
+ * @param BSP_SOCKET sck Socket to close
+ */
+BSP_DECLARE(void) bsp_socket_close(BSP_SOCKET *sck);
 
 #endif  /* _NET_BSP_SOCKET_H */

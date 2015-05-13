@@ -41,8 +41,6 @@
 #include "bsp-private.h"
 #include "bsp.h"
 
-#ifdef ENABLE_BSP_SPINLOCK
-
 struct timespec ts = {0, 500000};
 BSP_PRIVATE(inline uint8_t) _spin_cas(uint8_t compare, uint8_t val, uint8_t *lock)
 {
@@ -145,5 +143,3 @@ BSP_DECLARE(void) bsp_tiny_spin_destroy(BSP_TINY_SPINLOCK *lock)
 
     return;
 }
-
-#endif
