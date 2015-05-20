@@ -117,6 +117,12 @@ BSP_DECLARE(void) bsp_del_object(BSP_OBJECT *obj)
                     }
                 }
 
+                for (idx = 0; idx < array->nbuckets; idx ++)
+                {
+                    bsp_free(array->items[idx]);
+                }
+
+                bsp_free(array->items);
                 bsp_mempool_free(mp_array, array);
             }
 
@@ -135,6 +141,7 @@ BSP_DECLARE(void) bsp_del_object(BSP_OBJECT *obj)
                     bsp_mempool_free(mp_hash_item, old);
                 }
 
+                bsp_free(hash->hash_table);
                 bsp_mempool_free(mp_hash, hash);
             }
 
@@ -656,6 +663,7 @@ BSP_DECLARE(void) bsp_object_set_hash(BSP_OBJECT *obj, BSP_STRING *key, BSP_VALU
                 return;
             }
 
+            bzero(hash, sizeof(struct bsp_hash_t));
             hash->hash_table = bsp_calloc(_BSP_HASH_SIZE_INITIAL, sizeof(struct bsp_hash_item_t));
             if (!hash->hash_table)
             {
