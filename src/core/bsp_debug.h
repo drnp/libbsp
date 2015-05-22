@@ -92,7 +92,7 @@ typedef struct bsp_trace_t
  *
  * @return size_t Length of message
  */
-BSP_DECLARE(inline size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, const char *fmt, ...);
+BSP_DECLARE(size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, const char *fmt, ...);
 
 /**
  * Set trace severrity level. All message bigger than this value will be ignored

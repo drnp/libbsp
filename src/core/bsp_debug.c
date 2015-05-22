@@ -45,7 +45,7 @@ int trace_level = I_NONE;
 void (* trace_recipient) (BSP_TRACE *) = NULL;
 
 // Trace mesage
-BSP_DECLARE(inline size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, const char *fmt, ...)
+BSP_DECLARE(size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, const char *fmt, ...)
 {
     size_t nbytes = 0;
     if (trace_recipient && trace_level & level)

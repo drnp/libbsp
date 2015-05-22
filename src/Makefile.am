@@ -39,11 +39,7 @@ libbsp_la_SOURCES = \
 	utils/bsp_object.h \
 	utils/bsp_object.c \
 	net/bsp_socket.h \
-	net/bsp_socket.c \
-	net/bsp_session.h \
-	net/bsp_session.c \
-	net/bsp_channel.h \
-	net/bsp_channel.c
+	net/bsp_socket.c
 
 libbsp_la_LDFLAGS = 
 
@@ -64,9 +60,7 @@ nobase_pkginclude_HEADERS = \
 	utils/bsp_string.h \
 	utils/bsp_value.h \
 	utils/bsp_object.h \
-	net/bsp_socket.h \
-	net/bsp_session.h \
-	net/bsp_channel.h
+	net/bsp_socket.h
 
 pkgconfigdir = $(datadir)/pkgconfig
 pkgconfig_DATA = bsp.pc

@@ -44,7 +44,7 @@
 #define _GNU_SOURCE
 
 // eneral
-#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150403-dev"
+#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150522-dev"
 #define BSP_PACKAGE_NAME                "BSP::BlackTail"
 #define BSP_DECLARE(type)               type
 #define BSP_PRIVATE(type)               static type
