@@ -224,8 +224,6 @@ typedef enum bsp_fd_e
 #include "utils/bsp_object.h"
 
 #include "net/bsp_socket.h"
-#include "net/bsp_session.h"
-#include "net/bsp_channel.h"
 
 #include "core/bsp_bootstrap.h"
 
