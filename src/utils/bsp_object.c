@@ -713,9 +713,9 @@ BSP_DECLARE(BSP_VALUE *) bsp_object_value_single(BSP_OBJECT *obj)
     BSP_VALUE *ret = NULL;
     if (obj && BSP_OBJECT_SINGLE == obj->type)
     {
-        bsp_spin_lock(&obj->lock);
+        //bsp_spin_lock(&obj->lock);
         ret = obj->node.single;
-        bsp_spin_unlock(&obj->lock);
+        //bsp_spin_unlock(&obj->lock);
     }
 
     return ret;
