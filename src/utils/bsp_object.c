@@ -468,7 +468,9 @@ BSP_PRIVATE(inline BSP_BOOLEAN) _insert_to_hash(struct bsp_hash_t *hash, BSP_STR
         {
             // Just overwrite value
             bsp_del_value(item->value);
+            bsp_del_string(item->key);
             item->value = val;
+            item->key = key;
         }
         else
         {
@@ -484,15 +486,20 @@ BSP_PRIVATE(inline BSP_BOOLEAN) _insert_to_hash(struct bsp_hash_t *hash, BSP_STR
             if (hash->tail)
             {
                 hash->tail->lnext = item;
-                item->lprev = hash->tail;
             }
 
+            item->lprev = hash->tail;
             hash->tail = item;
             item->lnext = NULL;
 
             // Insert into hash
             uint32_t hash_key = bsp_hash(STR_STR(key), STR_LEN(key));
             struct bsp_hash_item_t *bucket = &hash->hash_table[hash_key % hash->hash_size];
+            if (bucket->next)
+            {
+                bucket->next->prev = item;
+            }
+
             item->next = bucket->next;
             item->prev = bucket;
             bucket->next = item;
