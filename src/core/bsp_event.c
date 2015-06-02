@@ -193,7 +193,6 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev)
                 }
 
                 ee.events = EPOLLET | EPOLLIN;
-                ev->data.associate.timer = 0;
                 break;
             default : 
                 // IO events
@@ -424,7 +423,6 @@ BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, in
                     ret = read(ev->data.fd, (void *) &notify_data, 8);
                     if (8 == ret)
                     {
-                        ed->associate.timer += notify_data;
                         ev->events |= BSP_EVENT_TIMER;
                     }
 

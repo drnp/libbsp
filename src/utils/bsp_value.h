@@ -174,6 +174,13 @@ typedef struct bsp_value_t
 
 /* Functions */
 /**
+ * Initialize value mempool
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_value_init();
+
+/**
  * Generate a new value
  *
  * @return p BSP_VALUE

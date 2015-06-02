@@ -57,6 +57,7 @@ BSP_DECLARE(int) bsp_string_init()
     if (!mp_string)
     {
         bsp_trace_message(BSP_TRACE_ALERT, _tag_, "Cannot create string pool");
+
         return BSP_RTN_ERR_MEMORY;
     }
 

@@ -75,6 +75,13 @@ typedef struct bsp_buffer_t
 
 /* Functions */
 /**
+ * Initialize buffer mempool
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_buffer_init();
+
+/**
  * Generate (from pool) a buffer
  *
  * @return p BSP_BUFFER

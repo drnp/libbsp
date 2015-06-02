@@ -43,6 +43,7 @@
 
 BSP_PRIVATE(const char *) _tag_ = "Thread";
 BSP_PRIVATE(struct bsp_thread_pool_t) thread_pool;
+BSP_PRIVATE(pthread_key_t) lid_key;
 
 // Initialize thread pool
 BSP_DECLARE(int) bsp_thread_init()
@@ -73,6 +74,8 @@ BSP_DECLARE(int) bsp_thread_init()
     thread_pool.io_list.list_size = _BSP_THREAD_LIST_INITIAL;
     thread_pool.worker_list.list_size = _BSP_THREAD_LIST_INITIAL;
 
+    pthread_key_create(&lid_key, NULL);
+
     return BSP_RTN_SUCCESS;
 }
 
@@ -87,7 +90,10 @@ void * _process(void *arg)
     int nfds, i;
     BSP_EVENT ev;
     BSP_SOCKET *sck = NULL;
+    BSP_TIMER *tmr = NULL;
+    pthread_setspecific(lid_key, arg);
 
+    // Format hook
     if (me->hook_former)
     {
         (me->hook_former)(me);
@@ -113,9 +119,10 @@ void * _process(void *arg)
             {
                 // Timer
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Timer event triggered");
-                if (me->hook_timer)
+                tmr = (BSP_TIMER *) ev.data.associate.ptr;
+                if (tmr)
                 {
-                    me->hook_timer(me);
+                    bsp_trigger_timer(tmr);
                 }
             }
 
@@ -185,6 +192,7 @@ void * _process(void *arg)
         }
     }
 
+    // Latter hook
     if (me->hook_latter)
     {
         (me->hook_latter)(me);
@@ -440,6 +448,14 @@ BSP_DECLARE(BSP_THREAD *) bsp_get_thread(BSP_THREAD_TYPE type, int idx)
     {
         t = list->list[idx];
     }
+
+    return t;
+}
+
+// Return current thread
+BSP_DECLARE(BSP_THREAD *) bsp_self_thread()
+{
+    BSP_THREAD *t = (BSP_THREAD *) pthread_getspecific(lid_key);
 
     return t;
 }

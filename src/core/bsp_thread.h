@@ -163,4 +163,11 @@ BSP_DECLARE(BSP_THREAD *) bsp_select_thread(BSP_THREAD_TYPE type);
  */
 BSP_DECLARE(BSP_THREAD *) bsp_get_thread(BSP_THREAD_TYPE type, int idx);
 
+/**
+ * Return current thread
+ *
+ * @return p BSP_THREAD
+ */
+BSP_DECLARE(BSP_THREAD *) bsp_self_thread();
+
 #endif  /* _CORE_BSP_THREAD_H */

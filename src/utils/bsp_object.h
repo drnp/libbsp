@@ -114,6 +114,13 @@ typedef struct bsp_object_t
 
 /* Functions */
 /**
+ * Initialize object mempool
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_object_init();
+
+/**
  * Generate a new object
  *
  * @return p BSP_OBJECT

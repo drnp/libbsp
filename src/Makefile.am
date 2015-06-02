@@ -38,6 +38,8 @@ libbsp_la_SOURCES = \
 	utils/bsp_value.c \
 	utils/bsp_object.h \
 	utils/bsp_object.c \
+	utils/bsp_timer.c \
+	utils/bsp_timer.h \
 	net/bsp_socket.h \
 	net/bsp_socket.c
 
@@ -60,6 +62,7 @@ nobase_pkginclude_HEADERS = \
 	utils/bsp_string.h \
 	utils/bsp_value.h \
 	utils/bsp_object.h \
+	utils/bsp_timer.h \
 	net/bsp_socket.h
 
 pkgconfigdir = $(datadir)/pkgconfig

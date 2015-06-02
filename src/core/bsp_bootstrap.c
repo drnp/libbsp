@@ -44,6 +44,7 @@
 
 BSP_PRIVATE(const char *) _tag_ = "BootStrap";
 BSP_PRIVATE(BSP_BOOTSTRAP_OPTIONS) options;
+BSP_PRIVATE(BSP_THREAD *) boss = NULL;
 
 // Signal handlers
 BSP_PRIVATE(void) _exit_handler(const int sig)
@@ -133,6 +134,7 @@ BSP_DECLARE(int) bsp_init()
         (BSP_RTN_SUCCESS != bsp_string_init()) | 
         (BSP_RTN_SUCCESS != bsp_value_init()) | 
         (BSP_RTN_SUCCESS != bsp_object_init()) | 
+        (BSP_RTN_SUCCESS != bsp_timer_init()) | 
         (BSP_RTN_SUCCESS != bsp_socket_init()))
     {
         bsp_trace_message(BSP_TRACE_EMERGENCY, _tag_, "Mempool initialize failed");
@@ -267,6 +269,14 @@ BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o)
         }
     }
 
+    // Only 1 BOSS thread
+    bsp_trace_message(BSP_TRACE_NOTICE, _tag_, "Try to create BOSS thread");
+    boss = bsp_new_thread(BSP_THREAD_BOSS, 
+                       options.boss_hook_former, 
+                       options.boss_hook_latter, 
+                       options.boss_hook_timer, 
+                       options.boss_hook_notify);
+
     return BSP_RTN_SUCCESS;
 }
 
@@ -287,14 +297,6 @@ BSP_DECLARE(int) bsp_startup()
     bsp_maxnium_fds();
     _proc_signals();
 
-    // Only 1 BOSS thread
-    bsp_trace_message(BSP_TRACE_NOTICE, _tag_, "Try to create BOSS thread");
-    BSP_THREAD *t = bsp_new_thread(BSP_THREAD_BOSS, 
-                                   options.boss_hook_former, 
-                                   options.boss_hook_latter, 
-                                   options.boss_hook_timer, 
-                                   options.boss_hook_notify);
-
     switch (options.mode)
     {
         case BSP_BOOTSTRAP_STANDARD : 
@@ -313,7 +315,7 @@ BSP_DECLARE(int) bsp_startup()
     }
 
     // Waiting for BOSS exit
-    bsp_wait_thread(t);
+    bsp_wait_thread(boss);
     if (options.main_hook_latter)
     {
         options.main_hook_latter();

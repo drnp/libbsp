@@ -87,6 +87,13 @@ typedef struct bsp_string_t
 
 /* Functions */
 /**
+ * Initialize string mempool
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_string_init();
+
+/**
  * Generate a new string
  *
  * @param string data Initialize data, NULL for a empty string

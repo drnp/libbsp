@@ -222,6 +222,7 @@ typedef enum bsp_fd_e
 #include "utils/bsp_string.h"
 #include "utils/bsp_value.h"
 #include "utils/bsp_object.h"
+#include "utils/bsp_timer.h"
 
 #include "net/bsp_socket.h"
 
