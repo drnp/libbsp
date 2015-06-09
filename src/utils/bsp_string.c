@@ -225,7 +225,7 @@ BSP_DECLARE(int) bsp_string_decompress(BSP_STRING *str)
 
 // For some reason, some old compiler does not support the "Statement expression".
 // So I move bsp_str(n)dup macro here as a normal function -_-
-char * bsp_strdup(const char *str)
+BSP_DECLARE(char *) bsp_strdup(const char *str)
 {
     size_t len = strlen(str);
     char *new = bsp_malloc(len + 1);
@@ -238,7 +238,7 @@ char * bsp_strdup(const char *str)
     return new;
 }
 
-char * bsp_strndup(const char *str, size_t len)
+BSP_DECLARE(char *) bsp_strndup(const char *str, size_t len)
 {
     char *new = bsp_malloc(len + 1);
     if (new)
@@ -248,4 +248,92 @@ char * bsp_strndup(const char *str, size_t len)
     }
 
     return new;
+}
+
+// Base64
+BSP_PRIVATE(const char *) _base64_enc_idx = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+BSP_PRIVATE(int) _base64_dec_idx[128] = {
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63, 
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, 64, -1, -1, 
+    -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1, 
+    -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1
+};
+
+BSP_DECLARE(BSP_STRING *) bsp_string_base64_encode(BSP_STRING *input)
+{
+    if (!input)
+    {
+        return NULL;
+    }
+
+    ssize_t i;
+    ssize_t remaining = STR_LEN(input);
+    int c1, c2, c3;
+    char tmp[4];
+    BSP_STRING *output = bsp_new_string(NULL, 0);
+
+    while (remaining > 0)
+    {
+        i = STR_LEN(input) - remaining;
+        c1 = STR_INDEX(input, i);
+        c2 = (remaining > 1) ? STR_INDEX(input, i + 1) : 0;
+        c3 = (remaining > 2) ? STR_INDEX(input, i + 2) : 0;
+
+        tmp[0] = _base64_enc_idx[(c1 >> 2) & 0x3F];
+        tmp[1] = _base64_enc_idx[(((c1 & 0x3) << 4) | c2 >> 4) & 0x3F];
+        tmp[2] = (remaining > 1) ? _base64_enc_idx[(((c2 & 0xF) << 2) | c3 >> 6) & 0x3F] : '=';
+        tmp[3] = (remaining > 2) ? _base64_enc_idx[c3 & 0x3F] : '=';
+
+        bsp_string_append(output, tmp, 4);
+        remaining -= 3;
+    }
+
+    return output;
+}
+
+BSP_DECLARE(BSP_STRING *) bsp_string_base64_decode(BSP_STRING *input)
+{
+    if (!input)
+    {
+        return NULL;
+    }
+
+    ssize_t i;
+    ssize_t remaining = STR_LEN(input);
+    int c1, c2, c3, c4;
+    char tmp[3];
+    BSP_STRING *output = bsp_new_string(NULL, 0);
+
+    while (remaining > 0)
+    {
+        i = STR_LEN(input) - remaining;
+        c1 = STR_INDEX(input, i);
+        c2 = (remaining > 1) ? STR_INDEX(input, i + 1) : 61;
+        c3 = (remaining > 2) ? STR_INDEX(input, i + 2) : 61;
+        c4 = (remaining > 3) ? STR_INDEX(input, i + 3) : 61;
+
+        if (c1 < 0 || c2 < 0 || c3 < 0 || c4 < 0)
+        {
+            // Invalid base64 stream
+            break;
+        }
+
+        c1 = _base64_dec_idx[c1];
+        c2 = _base64_dec_idx[c2];
+        c3 = _base64_dec_idx[c3];
+        c4 = _base64_dec_idx[c4];
+
+        tmp[0] = (c2 == 0x40) ? 0 : ((c1 << 2) | (c2 >> 4));
+        tmp[1] = (c3 == 0x40) ? 0 : ((c2 << 4) | (c3 >> 2));
+        tmp[2] = (c4 == 0x40) ? 0 : ((c3 << 6) | c4);
+
+        bsp_string_append(output, tmp, 3);
+        remaining -= 4;
+    }
+
+    return output;
 }

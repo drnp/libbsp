@@ -52,6 +52,7 @@
 #define STR_NEXT(str)                   (str->buf->cursor ++)
 #define STR_PREV(str)                   (str->buf->cursor --)
 #define STR_CHAR(str)                   (unsigned char) str->buf->data[str->buf->cursor]
+#define STR_INDEX(str, index)           (unsigned char) str->buf->data[index]
 #define STR_RESET(str)                  str->buf->cursor = 0
 #define STR_REMAIN(str)                 (str->buf->data_len - str->buf->cursor)
 #define STR_CURR(str)                   (str->buf->data + str->buf->cursor)
@@ -184,7 +185,7 @@ BSP_DECLARE(int) bsp_string_decompress(BSP_STRING *str);
  *
  * @return p Pointer of new string
  */
-char * bsp_strdup(const char *str);
+BSP_DECLARE(char *) bsp_strdup(const char *str);
 
 /**
  * Copy a lengthed string as a new one
@@ -194,6 +195,24 @@ char * bsp_strdup(const char *str);
  *
  * @return p Pointer of new string
  */
-char * bsp_strndup(const char *str, size_t len);
+BSP_DECLARE(char *) bsp_strndup(const char *str, size_t len);
+
+/**
+ * Encode an input string into base64 format
+ *
+ * @param string input Input source
+ *
+ * @return p BSP_STRING
+ */
+BSP_DECLARE(BSP_STRING *) bsp_string_base64_encode(BSP_STRING *input);
+
+/**
+ * Decode a base64 string into original data
+ *
+ * @param string input Input source
+ *
+ * @return p BSP_STRING
+ */
+BSP_DECLARE(BSP_STRING *) bsp_string_base64_decode(BSP_STRING *input);
 
 #endif  /* _UTILS_BSP_STRING_H */
