@@ -590,6 +590,7 @@ BSP_DECLARE(void) bsp_object_set_array(BSP_OBJECT *obj, ssize_t idx, BSP_VALUE *
                 return;
             }
 
+            bzero(array, sizeof(struct bsp_array_t));
             obj->node.array = array;
         }
 
