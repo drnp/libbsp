@@ -54,13 +54,13 @@ BSP_DECLARE(BSP_MEMPOOL *) bsp_new_mempool(size_t item_size, void * (*allocator)
         {
             bsp_free(m);
             bsp_trace_message(BSP_TRACE_CRITICAL, _tag_, "Mempool free list alloc failed");
+
             return NULL;
         }
 
         m->free_list_size = _BSP_MEMPOOL_FREE_LIST_SIZE;
         m->item_size = item_size;
         bsp_spin_init(&m->lock);
-        bsp_spin_lock(&m->lock);
         if (allocator)
         {
             m->allocator = allocator;
@@ -70,8 +70,6 @@ BSP_DECLARE(BSP_MEMPOOL *) bsp_new_mempool(size_t item_size, void * (*allocator)
         {
             m->freer = freer;
         }
-
-        bsp_spin_unlock(&m->lock);
     }
     else
     {
@@ -153,7 +151,7 @@ BSP_DECLARE(void) bsp_mempool_free(BSP_MEMPOOL *m, void *item)
         while (m->total_free >= m->free_list_size)
         {
             // Enlarge free list
-            void **new_list = bsp_realloc(m->free_list, m->free_list_size * 2);
+            void **new_list = bsp_realloc(m->free_list, m->free_list_size * 2 * sizeof(void *));
             if (new_list)
             {
                 m->free_list = new_list;
