@@ -283,11 +283,12 @@ BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o)
 // Startup application. This is the main portal of an libbsp program
 BSP_DECLARE(int) bsp_startup()
 {
+/*
     if (options.daemonize && BSP_BOOTSTRAP_SERVER == options.mode)
     {
         bsp_daemonize();
     }
-
+*/
     if (options.enlarge_memory_page_size)
     {
         // Ooooopps~~

@@ -93,6 +93,11 @@ void * _process(void *arg)
     BSP_TIMER *tmr = NULL;
     pthread_setspecific(lid_key, arg);
 
+    // Condition signal
+    pthread_mutex_lock(&me->init_lock);
+    pthread_cond_signal(&me->init_cond);
+    pthread_mutex_unlock(&me->init_lock);
+
     // Format hook
     if (me->hook_former)
     {
@@ -242,6 +247,9 @@ BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type,
     t->hook_timer = hook_timer;
     t->hook_notify = hook_notify;
 
+    pthread_mutex_init(&t->init_lock, NULL);
+    pthread_cond_init(&t->init_cond, NULL);
+
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     if (BSP_THREAD_ACCEPTOR == t->type || 
@@ -306,6 +314,11 @@ BSP_DECLARE(BSP_THREAD *) bsp_new_thread(BSP_THREAD_TYPE type,
                 bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Add thread %llu to pool", (uint64_t) t->pid);
             }
         }
+
+        // Waiting for condition
+        pthread_mutex_lock(&t->init_lock);
+        pthread_cond_wait(&t->init_cond, &t->init_lock);
+        pthread_mutex_unlock(&t->init_lock);
     }
     else
     {
