@@ -85,8 +85,14 @@ typedef struct bsp_bootstrap_options_t
     // Trace severity level
     BSP_TRACE_LEVEL     trace_level;
 
+    // Log severity level
+    BSP_TRACE_LEVEL     log_level;
+
     // Trace message recipient
     void                (*trace_recipient)(BSP_TRACE *);
+
+    // Log message recipient
+    void                (*log_recipient)(BSP_TRACE *);
 
     // Hooks
     void                (*main_hook_former)(void);

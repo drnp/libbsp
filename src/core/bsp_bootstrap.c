@@ -204,6 +204,8 @@ BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o)
     options.mode = o->mode;
     options.trace_level = o->trace_level;
     options.trace_recipient = o->trace_recipient;
+    options.log_level = o->log_level;
+    options.log_recipient = o->log_recipient;
     options.main_hook_former = o->main_hook_former;
     options.main_hook_latter = o->main_hook_latter;
     options.boss_hook_former = o->boss_hook_former;
@@ -231,6 +233,8 @@ BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o)
 
     bsp_set_trace_level(options.trace_level);
     bsp_set_trace_recipient(options.trace_recipient);
+    bsp_set_log_level(options.log_level);
+    bsp_set_log_recipient(options.log_recipient);
 
     int i;
     if (BSP_BOOTSTRAP_SERVER == options.mode)
@@ -245,7 +249,7 @@ BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o)
                            options.acceptor_hook_timer, 
                            options.acceptor_hook_notify);
         }
-
+        
         bsp_trace_message(BSP_TRACE_NOTICE, _tag_, "Try to create %d IO threads", options.io_threads);
         // Start IO threads
         for (i = 0; i < options.io_threads; i ++)

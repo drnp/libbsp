@@ -70,6 +70,7 @@ typedef struct bsp_thread_t
     // Init lock & cond
     pthread_mutex_t     init_lock;
     pthread_cond_t      init_cond;
+    BSP_BOOLEAN         initialized;
     BSP_EVENT_CONTAINER *event_container;
     // Hook before event loop
     void                (*hook_former)(struct bsp_thread_t *);

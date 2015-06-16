@@ -42,13 +42,15 @@
 #include "bsp.h"
 
 int trace_level = I_NONE;
-void (* trace_recipient) (BSP_TRACE *) = NULL;
+int log_level = I_NONE;
+void (* trace_recipient)(BSP_TRACE *) = NULL;
+void (* log_recipient)(BSP_TRACE *) = NULL;
 
 // Trace mesage
 BSP_DECLARE(size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, const char *fmt, ...)
 {
     size_t nbytes = 0;
-    if (trace_recipient && trace_level & level)
+    if ((trace_level & level) || (log_level & level))
     {
         // Generate message
         char msg[_BSP_MAX_TRACE_LENGTH];
@@ -63,7 +65,15 @@ BSP_DECLARE(size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, co
         bt.tag = tag;
         bt.msg = (const char *) msg;
 
-        (trace_recipient) (&bt);
+        if (trace_recipient && (trace_level & level))
+        {
+            (trace_recipient) (&bt);
+        }
+
+        if (log_recipient && (log_level & level))
+        {
+            (log_recipient) (&bt);
+        }
     }
 
     return nbytes;
@@ -81,6 +91,22 @@ BSP_DECLARE(void) bsp_set_trace_level(BSP_TRACE_LEVEL level)
 BSP_DECLARE(void) bsp_set_trace_recipient(void (*recipient)(BSP_TRACE *))
 {
     trace_recipient = recipient;
+
+    return;
+}
+
+// Set log level
+BSP_DECLARE(void) bsp_set_log_level(BSP_TRACE_LEVEL level)
+{
+    log_level = level;
+
+    return;
+}
+
+// Set log recipient. Null means disable log
+BSP_DECLARE(void) bsp_set_log_recipient(void (*recipient)(BSP_TRACE *))
+{
+    log_recipient = recipient;
 
     return;
 }
