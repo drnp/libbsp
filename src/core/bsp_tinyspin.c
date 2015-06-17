@@ -41,7 +41,7 @@
 #include "bsp-private.h"
 #include "bsp.h"
 
-struct timespec ts = {0, 500000};
+BSP_PRIVATE(struct timespec) ts = {0, 500000};
 BSP_PRIVATE(inline uint8_t) _spin_cas(uint8_t compare, uint8_t val, uint8_t *lock)
 {
     uint8_t ret;

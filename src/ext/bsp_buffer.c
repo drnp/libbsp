@@ -45,7 +45,7 @@ BSP_PRIVATE(BSP_MEMPOOL *) mp_buffer = NULL;
 BSP_PRIVATE(const char *) _tag_ = "Buffer";
 
 /* Mempool freer */
-void _buffer_free(void *item)
+BSP_PRIVATE(void) _buffer_free(void *item)
 {
     BSP_BUFFER *b = (BSP_BUFFER *) item;
     if (b)

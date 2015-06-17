@@ -79,7 +79,7 @@ BSP_DECLARE(int) bsp_thread_init()
     return BSP_RTN_SUCCESS;
 }
 
-void * _process(void *arg)
+BSP_PRIVATE(void *) _process(void *arg)
 {
     BSP_THREAD *me = (BSP_THREAD *) arg;
     if (!me)

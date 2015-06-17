@@ -120,6 +120,7 @@ typedef struct bsp_bootstrap_options_t
     void                (*signal_on_usr1)();
     void                (*signal_on_usr2)();
     void                (*signal_on_hup)();
+    void                (*signal_on_winch)();
 } BSP_BOOTSTRAP_OPTIONS;
 
 /* Functions */

@@ -41,10 +41,10 @@
 #include "bsp-private.h"
 #include "bsp.h"
 
-int trace_level = I_NONE;
-int log_level = I_NONE;
-void (* trace_recipient)(BSP_TRACE *) = NULL;
-void (* log_recipient)(BSP_TRACE *) = NULL;
+BSP_PRIVATE(int) trace_level = I_NONE;
+BSP_PRIVATE(int) log_level = I_NONE;
+BSP_PRIVATE(void) (* trace_recipient)(BSP_TRACE *) = NULL;
+BSP_PRIVATE(void) (* log_recipient)(BSP_TRACE *) = NULL;
 
 // Trace mesage
 BSP_DECLARE(size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, const char *fmt, ...)

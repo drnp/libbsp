@@ -91,7 +91,7 @@ BSP_DECLARE(void) bsp_del_value(BSP_VALUE *val)
 }
 
 /* Stream to value */
-int bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian)
+BSP_DECLARE(int) bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian)
 {
     if (!data || !value)
     {
@@ -200,7 +200,7 @@ int bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian)
 }
 
 /* Value into stream */
-int bsp_set_value(char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian)
+BSP_DECLARE(int) bsp_set_value(char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian)
 {
     if (!data || !value)
     {

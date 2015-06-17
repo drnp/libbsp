@@ -108,6 +108,18 @@ BSP_PRIVATE(void) _hup_handler()
     return;
 }
 
+BSP_PRIVATE(void) _winch_handler()
+{
+    if (options.signal_on_winch)
+    {
+        options.signal_on_winch();
+    }
+
+    bsp_trace_message(BSP_TRACE_NOTICE, "Signal", "Signal WinCH handled");
+
+    return;
+}
+
 BSP_PRIVATE(void) _proc_signals()
 {
     signal(SIGINT, _exit_handler);
@@ -117,6 +129,7 @@ BSP_PRIVATE(void) _proc_signals()
     signal(SIGUSR1, _usr1_handler);
     signal(SIGUSR2, _usr2_handler);
     signal(SIGHUP, _hup_handler);
+    signal(SIGWINCH, _winch_handler);
     signal(SIGPIPE, SIG_IGN);
 
     bsp_trace_message(BSP_TRACE_INFORMATIONAL, _tag_, "Signals set with default behaviors");
@@ -230,6 +243,7 @@ BSP_DECLARE(int) bsp_prepare(BSP_BOOTSTRAP_OPTIONS *o)
     options.signal_on_usr2 = o->signal_on_usr2;
     options.signal_on_tstp = o->signal_on_tstp;
     options.signal_on_hup = o->signal_on_hup;
+    options.signal_on_winch = o->signal_on_winch;
 
     bsp_set_trace_level(options.trace_level);
     bsp_set_trace_recipient(options.trace_recipient);

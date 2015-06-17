@@ -203,7 +203,7 @@ BSP_DECLARE(void) bsp_del_value(BSP_VALUE *v);
  *
  * @return int Length read
  */
-int bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian);
+BSP_DECLARE(int) bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian);
 
 /**
  * Set value to stream
@@ -214,6 +214,6 @@ int bsp_get_value(const char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian);
  *
  * @return int Length wrote
  */
-int bsp_set_value(char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian);
+BSP_DECLARE(int) bsp_set_value(char *data, BSP_VALUE *value, BSP_ENDIAN_TYPE endian);
 
 #endif  /* _UTILS_BSP_VALUE_H */
