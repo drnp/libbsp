@@ -80,9 +80,6 @@
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/resource.h>
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
-#include <sys/timerfd.h>
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -98,6 +95,8 @@
     #define _SYMBOL_NAME_MAX            64
 #endif
 
+#define BSP_FD_ADDITIONS                16
+
 // Boolean
 typedef enum bsp_boolean_e
 {
@@ -107,8 +106,51 @@ typedef enum bsp_boolean_e
 #define BSP_FALSE                       BSP_FALSE
 } BSP_BOOLEAN;
 
+// Allocator
+#if @ac_cv_enable_jemalloc@
+    #define JEMALLOC_MANGLE
+    #include <jemalloc/jemalloc.h>
+#endif
+
+#if @ac_cv_enable_tcmalloc@
+    #include <gpreftools/tcmalloc.h>
+    #define malloc                      tc_malloc
+    #define calloc                      tc_calloc
+    #define realloc                     tc_realloc
+    #define free                        tc_free
+    #define valloc                      tc_valloc
+    #define posix_memalign              tc_posix_memalign
+#endif
+
+#include "core/bsp_tinyspin.h"
+
+// Spinlock
+#if @ac_cv_enable_bsp_spinlock@
+    typedef BSP_TINY_SPINLOCK           BSP_SPINLOCK;
+    #define BSP_SPINLOCK_INITIALIZER    {._lock = _SPIN_FREE, ._loop_times = 0}
+    #define bsp_spin_init(lock)         bsp_tiny_spin_init(lock)
+    #define bsp_spin_lock(lock)         bsp_tiny_spin_lock(lock)
+    #define bsp_spin_unlock(lock)       bsp_tiny_spin_unlock(lock)
+    #define BSP_spin_destroy(lock)      bsp_tiny_spin_destroy(lock)
+#else
+    typedef pthread_spinlock_t          BSP_SPINLOCK;
+    #define BSP_SPINLOCK_INITIALIZER    1
+    #define bsp_spin_init(lock)         pthread_spin_init(lock, 0)
+    #define bsp_spin_lock(lock)         pthread_spin_lock(lock)
+    #define bsp_spin_unlock(lock)       pthread_spin_unlock(lock)
+    #define bsp_spin_destroy            pthread_spin_destroy(lock)
+#endif
+
+// Event
+typedef struct bsp_event_container_t    BSP_EVENT_CONTAINER;
+typedef struct bsp_event_spec_t
+{
+    int                 events;
+    int                 triggered;
+    BSP_EVENT_CONTAINER *container;
+} BSP_EVENT_SPEC;
 // File descriptor type
-typedef enum bsp_fd_e
+typedef enum bsp_fd_type_e
 {
     BSP_FD_ANY          = 0x0, 
 #define BSP_FD_ANY                      BSP_FD_ANY
@@ -173,40 +215,16 @@ typedef enum bsp_fd_e
 #define BSP_FD_UNKNOWN                  BSP_FD_UNKNOWN
 } BSP_FD_TYPE;
 
-// Allocator
-#if @ac_cv_enable_jemalloc@
-    #define JEMALLOC_MANGLE
-    #include <jemalloc/jemalloc.h>
-#endif
-
-#if @ac_cv_enable_tcmalloc@
-    #include <gpreftools/tcmalloc.h>
-    #define malloc                      tc_malloc
-    #define calloc                      tc_calloc
-    #define realloc                     tc_realloc
-    #define free                        tc_free
-    #define valloc                      tc_valloc
-    #define posix_memalign              tc_posix_memalign
-#endif
-
-#include "core/bsp_tinyspin.h"
-
-// Spinlock
-#if @ac_cv_enable_bsp_spinlock@
-    typedef BSP_TINY_SPINLOCK           BSP_SPINLOCK;
-    #define BSP_SPINLOCK_INITIALIZER    {._lock = _SPIN_FREE, ._loop_times = 0}
-    #define bsp_spin_init(lock)         bsp_tiny_spin_init(lock)
-    #define bsp_spin_lock(lock)         bsp_tiny_spin_lock(lock)
-    #define bsp_spin_unlock(lock)       bsp_tiny_spin_unlock(lock)
-    #define BSP_spin_destroy(lock)      bsp_tiny_spin_destroy(lock)
-#else
-    typedef pthread_spinlock_t          BSP_SPINLOCK;
-    #define BSP_SPINLOCK_INITIALIZER    1
-    #define bsp_spin_init(lock)         pthread_spin_init(lock, 0)
-    #define bsp_spin_lock(lock)         pthread_spin_lock(lock)
-    #define bsp_spin_unlock(lock)       pthread_spin_unlock(lock)
-    #define bsp_spin_destroy            pthread_spin_destroy(lock)
-#endif
+typedef struct bsp_fd_t
+{
+    int                 fd;
+    enum bsp_fd_type_e  type;
+    struct bsp_event_spec_t
+                        event;
+    void                *ptr;
+    void                *additions[BSP_FD_ADDITIONS];
+    BSP_BOOLEAN         reg;
+} BSP_FD;
 
 // Headers
 #include "core/bsp_debug.h"
@@ -214,6 +232,7 @@ typedef enum bsp_fd_e
 #include "core/bsp_event.h"
 #include "core/bsp_thread.h"
 #include "core/bsp_mempool.h"
+#include "core/bsp_fd.h"
 
 #include "ext/bsp_variable.h"
 #include "ext/bsp_buffer.h"

@@ -87,8 +87,8 @@ BSP_PRIVATE(void *) _process(void *arg)
         return NULL;
     }
 
-    int nfds, i;
-    BSP_EVENT ev;
+    BSP_FD *f = NULL;
+    BSP_EVENT_SPEC *ev = NULL;
     BSP_SOCKET *sck = NULL;
     BSP_TIMER *tmr = NULL;
     pthread_setspecific(lid_key, arg);
@@ -107,32 +107,32 @@ BSP_PRIVATE(void *) _process(void *arg)
 
     while (me->has_loop)
     {
-        nfds = bsp_wait_events(me->event_container);
-        for (i = 0; i < nfds; i ++)
+        f = bsp_get_active_fd(me->event_container);
+        if (f)
         {
-            bsp_get_active_event(me->event_container, &ev, i);
-            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d triggered on fd %d", ev.events, ev.data.fd);
+            ev = FD_EVENT(f);
+            bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d triggered on fd %d", ev->triggered, f->fd);
             sck = NULL;
 
             // Non socket
-            if (ev.events & BSP_EVENT_SIGNAL)
+            if (ev->triggered & BSP_EVENT_SIGNAL)
             {
                 // Signal
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Signal event triggered");
             }
 
-            if (ev.events & BSP_EVENT_TIMER)
+            if (ev->triggered & BSP_EVENT_TIMER)
             {
                 // Timer
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Timer event triggered");
-                tmr = (BSP_TIMER *) ev.data.associate.ptr;
+                tmr = (BSP_TIMER *) f->ptr;
                 if (tmr)
                 {
                     bsp_trigger_timer(tmr);
                 }
             }
 
-            if (ev.events & BSP_EVENT_EVENT)
+            if (ev->triggered & BSP_EVENT_EVENT)
             {
                 // Event
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Notification event triggered");
@@ -143,51 +143,51 @@ BSP_PRIVATE(void *) _process(void *arg)
             }
 
             // Socket
-            if (ev.events & BSP_EVENT_READ)
+            if (ev->triggered & BSP_EVENT_READ)
             {
                 // Data can read
-                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d become readable", ev.data.fd);
-                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "FD %d become readable", f->fd);
+                sck = (BSP_SOCKET *) f->ptr;
                 sck->state |= BSP_SOCK_STATE_READABLE;
             }
 
-            if (ev.events & BSP_EVENT_WRITE)
+            if (ev->triggered & BSP_EVENT_WRITE)
             {
                 // IO writable
-                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d become writable", ev.data.fd);
-                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "FD %d become writable", f->fd);
+                sck = (BSP_SOCKET *) f->ptr;
                 sck->state |= BSP_SOCK_STATE_WRITABLE;
             }
 
-            if (ev.events & BSP_EVENT_ACCEPT)
+            if (ev->triggered & BSP_EVENT_ACCEPT)
             {
                 // TCP / SCTP acceptable
-                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d become acceptable", ev.data.fd);
-                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "FD %d become acceptable", f->fd);
+                sck = (BSP_SOCKET *) f->ptr;
                 sck->state |= BSP_SOCK_STATE_ACCEPTABLE;
             }
 
-            if (ev.events & BSP_EVENT_LOCAL_HUP)
+            if (ev->triggered & BSP_EVENT_LOCAL_HUP)
             {
                 // Local hup
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d hup locally");
-                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck = (BSP_SOCKET *) f->ptr;
                 sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
             }
 
-            if (ev.events & BSP_EVENT_REMOTE_HUP)
+            if (ev->triggered & BSP_EVENT_REMOTE_HUP)
             {
                 // Remote hup
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d hup remotely");
-                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck = (BSP_SOCKET *) f->ptr;
                 sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
             }
 
-            if (ev.events & BSP_EVENT_ERROR)
+            if (ev->triggered & BSP_EVENT_ERROR)
             {
                 // General error
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d triggered an error");
-                sck = (BSP_SOCKET *) ev.data.associate.ptr;
+                sck = (BSP_SOCKET *) f->ptr;
                 sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_PRECLOSE;
             }
 

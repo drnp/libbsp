@@ -14,6 +14,8 @@ libbsp_la_SOURCES = \
 	bsp.h \
 	core/bsp_debug.h \
 	core/bsp_debug.c \
+	core/bsp_fd.h \
+	core/bsp_fd.c \
 	core/bsp_misc.h \
 	core/bsp_misc.c \
 	core/bsp_tinyspin.h \
@@ -50,6 +52,7 @@ libbsp_la_LIBADD =
 nobase_pkginclude_HEADERS = \
 	bsp.h \
 	core/bsp_debug.h \
+	core/bsp_fd.h \
 	core/bsp_misc.h \
 	core/bsp_tinyspin.h \
 	core/bsp_mempool.h \

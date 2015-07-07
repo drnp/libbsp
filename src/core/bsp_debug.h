@@ -99,7 +99,7 @@ BSP_DECLARE(size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, co
  *
  * @param BSP_TRACE_LEVEL level Level
  */
-BSP_DECLARE(void) bsp_set_trace_level(BSP_TRACE_LEVEL level);
+BSP_DECLARE(void) bsp_set_trace_level(int level);
 
 /**
  * Set trace recipient. Messages will be transfered to it, if set NULL, trace will be disabled
@@ -113,7 +113,7 @@ BSP_DECLARE(void) bsp_set_trace_recipient(void (*recipient)(BSP_TRACE *));
  *
  * @param BSP_TRACE_LEVEL level Level
  */
-BSP_DECLARE(void) bsp_set_log_level(BSP_TRACE_LEVEL level);
+BSP_DECLARE(void) bsp_set_log_level(int level);
 
 /**
  * Set log recipient. Messages will be transfered to it, if set NULL, log will be disabled

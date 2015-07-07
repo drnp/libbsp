@@ -82,6 +82,23 @@ BSP_DECLARE(BSP_TIMER *) bsp_new_timer(
         return NULL;
     }
 
+    int fd;
+#if defined(EVENT_USE_EPOLL)
+    // Timerfd
+#ifdef TFD_NONBLOCK
+    fd = timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
+#else
+    fd = timerfd_create(CLOCK_REALTIME, 0);
+    bsp_set_blocking(fd, BSP_FD_NONBLOCK);
+#endif
+    if (-1 == fd)
+    {
+        return NULL;
+    }
+#elif define(EVENT_USE_KQUEUE)
+#else
+#endif
+
     BSP_TIMER *tmr = bsp_mempool_alloc(mp_timer);
     if (!tmr)
     {
@@ -90,34 +107,39 @@ BSP_DECLARE(BSP_TIMER *) bsp_new_timer(
         return NULL;
     }
 
+    BSP_FD *f = bsp_reg_fd(fd, BSP_FD_TIMER, tmr);
+    if (!f)
+    {
+        bsp_mempool_free(mp_timer, tmr);
+        return NULL;
+    }
+
     bzero(tmr, sizeof(BSP_TIMER));
     tmr->initialized = BSP_FALSE;
-
-    BSP_EVENT ev;
-    ev.timer_spec.it_value.tv_sec = initial->tv_sec;
-    ev.timer_spec.it_value.tv_nsec = initial->tv_nsec;
+    tmr->fd = fd;
+    tmr->spec.it_value.tv_sec = initial->tv_sec;
+    tmr->spec.it_value.tv_nsec = initial->tv_nsec;
+    tmr->loop = loop;
+    tmr->count = 0;
     if (1 != loop)
     {
         // Has loop
         if (interval && (interval->tv_sec || interval->tv_nsec))
         {
-            ev.timer_spec.it_interval.tv_sec = interval->tv_sec;
-            ev.timer_spec.it_interval.tv_nsec = interval->tv_nsec;
+            tmr->spec.it_interval.tv_sec = interval->tv_sec;
+            tmr->spec.it_interval.tv_nsec = interval->tv_nsec;
         }
         else
         {
-            ev.timer_spec.it_interval.tv_sec = initial->tv_sec;
-            ev.timer_spec.it_interval.tv_nsec = interval->tv_nsec;
+            tmr->spec.it_interval.tv_sec = initial->tv_sec;
+            tmr->spec.it_interval.tv_nsec = initial->tv_nsec;
         }
     }
 
-    tmr->loop = loop;
-    tmr->count = 0;
-    ev.events = BSP_EVENT_TIMER;
-    ev.data.fd_type = BSP_FD_TIMER;
-    ev.data.associate.ptr = (void *) tmr;
-    bsp_add_event(ec, &ev);
-    tmr->fd = ev.data.fd;
+    BSP_EVENT_SPEC *ev = FD_EVENT(f);
+    ev->events = BSP_EVENT_TIMER;
+    ev->container = ec;
+    bsp_set_event(fd);
 
     return tmr;
 }
@@ -130,10 +152,8 @@ BSP_DECLARE(int) bsp_del_timer(BSP_TIMER *tmr)
         return BSP_RTN_INVALID;
     }
 
-    BSP_EVENT ev;
-    ev.data.fd_type = BSP_FD_TIMER;
-    ev.data.fd = tmr->fd;
-    bsp_del_event(&ev);
+    bsp_del_event(tmr->fd);
+    bsp_unreg_fd(tmr->fd);
     bsp_mempool_free(mp_timer, tmr);
 
     return BSP_RTN_SUCCESS;

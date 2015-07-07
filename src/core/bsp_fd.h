@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * bsp-private.h
+ * bsp_fd.h
  * 
  * MODIFY ME TO EFFECT ON THE BEHAVIORS OF BLACKTAIL
  * THIS FILE WILL NOT BE INSTALLED TO SYSTEM
@@ -13,14 +13,14 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of Unknown nor the name of any other
+ * 3. Neither the name of Dr.NP nor the name of any other
  *    contributor may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY Unknown AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY Dr.NP AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL Unknown OR ANY OTHER
+ * ARE DISCLAIMED. IN NO EVENT SHALL Dr.NP OR ANY OTHER
  * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
  * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
@@ -31,46 +31,65 @@
  */
 
 /**
- * Private header for libbsp
+ * File descriptor operates header
+ *
+ * @package bsp::blacktail
+ * @author Dr.NP <np@bsgroup.org>
+ * @update 06/24/2015
+ * @changelog
+ *      [06/24/2015] - Creation
  */
 
-#ifndef _BSP_PRIVATE_H
+#ifndef _CORE_BSP_FD_H
 
-#define _BSP_PRIVATE_H
-#define _GNU_SOURCE
-// System headers
-#ifdef HAVE_CONFIG_H
-    #include "config.h"
-#endif
+#define _CORE_BSP_FD_H
+/* Headers */
+
+/* Definations */
+
+/* Macros */
+#define FD_ADD_GET(fd, idx)             ((fd && (idx >= 0) && (idx < BSP_FD_ADDITIONS)) ? fd->additions[idx] : NULL)
+#define FD_ADD_SET(fd, idx, ptr)        if (fd && (idx >= 0) && (idx < BSP_FD_ADDITIONS)) fd->additions[idx] = (void *) ptr
+#define FD_EVENT(fd)                    &fd->event
+#define FD_PTR(fd)                      fd->ptr
+
+/* Structs */
+
+/* Functions */
+/**
+ * Initialize fd
+ *
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_fd_init();
 
 /**
- * Default (safe) values
- * 
- * @internal
+ * Register fd to list
+ *
+ * @param int fd FD
+ * @param int type Type of fd
+ *
+ * @return int Status
  */
-// Values
-#define _BSP_MAX_OPEN_FILES             1048576
-#define _BSP_SAFE_OPEN_FILES            1024
-#define _BSP_TCP_BACKLOG                511
-#define _BSP_UDP_MAX_SNDBUF             1048576
-#define _BSP_UDP_MAX_RCVBUF             1048576
-#define _BSP_MAX_UNSIZED_STRLEN         4096
-#define _BSP_MEMPOOL_FREE_LIST_SIZE     256
-#define _BSP_BUFFER_HIGHWATER           524288
-#define _BSP_BUFFER_UNSATURATION        131072
-#define _BSP_MAX_TRACE_LENGTH           4096
-#define _BSP_THREAD_LIST_INITIAL        128
-#define _BSP_ARRAY_BUCKET_SIZE          64
-#define _BSP_HASH_SIZE_INITIAL          8
-#define _BSP_FD_READ_ONCE               4096
-#define _BSP_MAX_SESSION_ID_LENGTH      128
-
-// This value is ignored since Linux 2.6.8
-#define _BSP_EPOLL_SIZE                 1024
-#define _BSP_EVENT_QUEUE_LENGTH         1024
+BSP_DECLARE(BSP_FD *) bsp_reg_fd(int fd, BSP_FD_TYPE type, void *ptr);
 
 /**
- * Private functions
+ * Unregister fd from list
+ *
+ * @param int fd FD
+ *
+ * @return int Status
  */
+BSP_DECLARE(int) bsp_unreg_fd(int fd);
 
-#endif  /* _BSP_PRIVATE_H */
+/**
+ * Get instance of fd by given parameters
+ *
+ * @param int fd FD
+ * @param int type Type of fd, BSP_FD_ANY for any type
+ *
+ * @return p BSP_FD
+ */
+BSP_DECLARE(BSP_FD *) bsp_get_fd(int fd, BSP_FD_TYPE type);
+
+#endif  /* _CORE_BSP_FD_H */

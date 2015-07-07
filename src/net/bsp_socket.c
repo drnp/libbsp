@@ -135,9 +135,7 @@ BSP_PRIVATE(void) _try_close_socket(BSP_SOCKET *sck)
     bzero(&sck->send_buffer, sizeof(BSP_BUFFER));
 
     // When close ,fd will be removed from all event container automatically
-    BSP_EVENT ev;
-    ev.data.fd = sck->fd;
-    bsp_del_event(&ev);
+    bsp_del_event(sck->fd);
 
     // Clear state
     sck->state = BSP_SOCK_STATE_IDLE;
@@ -869,7 +867,13 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
     BSP_SOCKET_CLIENT *clt = NULL;
     BSP_SOCKET_CONNECTOR *cnt = NULL;
     BSP_BUFFER *buff;
-    BSP_EVENT ev;
+    BSP_FD *f = bsp_get_fd(sck->fd, BSP_FD_ANY), *new;
+    if (!f)
+    {
+        return 0;
+    }
+
+    BSP_EVENT_SPEC *ev;
 
     // Socket error
     if (sck->state & BSP_SOCK_STATE_ERROR)
@@ -1003,9 +1007,9 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
                 // No data to write
                 bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "All datas in socket %d 's send buffer have been sent", sck->fd);
                 sck->state &= ~ BSP_SOCK_STATE_WRITABLE;
-                ev.data.fd = sck->fd;
-                ev.events = BSP_EVENT_WRITE;
-                bsp_mod_event(BSP_EVENT_REMOVE, &ev);
+                ev = FD_EVENT(f);
+                ev->events &= ~ BSP_EVENT_WRITE;
+                bsp_set_event(sck->fd);
             }
         }
     }
@@ -1024,12 +1028,14 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
                 BSP_THREAD *t = bsp_select_thread(BSP_THREAD_IO);
                 if (t)
                 {
-                    BSP_EVENT ev;
-                    ev.data.fd = clt->sck.fd;
-                    ev.data.associate.ptr = clt;
-                    ev.events = BSP_EVENT_READ;
-                    ev.data.fd_type = (BSP_SOCK_TCP == sck->sock_type) ? BSP_FD_SOCKET_CLIENT_TCP : BSP_FD_SOCKET_CLIENT_SCTP;
-                    bsp_add_event(t->event_container, &ev);
+                    new = bsp_reg_fd(clt->sck.fd, clt->sck.fd_type, clt);
+                    if (new)
+                    {
+                        ev = FD_EVENT(new);
+                        ev->events = BSP_EVENT_READ;
+                        ev->container = t->event_container;
+                        bsp_set_event(clt->sck.fd);
+                    }
                 }
 
                 srv = clt->connected_server;
@@ -1130,10 +1136,13 @@ BSP_DECLARE(void) bsp_socket_flush(BSP_SOCKET *sck)
 {
     if (sck)
     {
-        BSP_EVENT ev;
-        ev.data.fd = sck->fd;
-        ev.events = BSP_EVENT_WRITE;
-        bsp_mod_event(BSP_EVENT_ADD, &ev);
+        BSP_FD *f = bsp_get_fd(sck->fd, BSP_FD_ANY);
+        if (f)
+        {
+            BSP_EVENT_SPEC *ev = FD_EVENT(f);
+            ev->events |= BSP_EVENT_WRITE;
+            bsp_set_event(sck->fd);
+        }
     }
 
     return;
@@ -1144,11 +1153,14 @@ BSP_DECLARE(void) bsp_socket_close(BSP_SOCKET *sck)
 {
     if (sck)
     {
-        BSP_EVENT ev;
-        ev.data.fd = sck->fd;
-        ev.events = BSP_EVENT_WRITE;
-        sck->state |= BSP_SOCK_STATE_PRECLOSE;
-        bsp_mod_event(BSP_EVENT_ADD, &ev);
+        BSP_FD *f = bsp_get_fd(sck->fd, BSP_FD_ANY);
+        if (f)
+        {
+            BSP_EVENT_SPEC *ev = FD_EVENT(f);
+            ev->events |= BSP_EVENT_WRITE;
+            sck->state |= BSP_SOCK_STATE_PRECLOSE;
+            bsp_set_event(sck->fd);
+        }
     }
 
     return;

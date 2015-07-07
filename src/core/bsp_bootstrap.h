@@ -83,10 +83,10 @@ typedef struct bsp_bootstrap_options_t
     BSP_BOOLEAN         enlarge_memory_page_size;
 
     // Trace severity level
-    BSP_TRACE_LEVEL     trace_level;
+    int                 trace_level;
 
     // Log severity level
-    BSP_TRACE_LEVEL     log_level;
+    int                 log_level;
 
     // Trace message recipient
     void                (*trace_recipient)(BSP_TRACE *);

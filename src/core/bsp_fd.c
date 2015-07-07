@@ -1,8 +1,10 @@
 /* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * bsp_timer.h
- * Copyright (C) 2015 Dr.NP <np@bsgroup.org>
- *
+ * bsp_fd.c
+ * 
+ * MODIFY ME TO EFFECT ON THE BEHAVIORS OF BLACKTAIL
+ * THIS FILE WILL NOT BE INSTALLED TO SYSTEM
+ * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -29,72 +31,85 @@
  */
 
 /**
- * Timer header
+ * File descriptor operates
  *
  * @package bsp::blacktail
  * @author Dr.NP <np@bsgroup.org>
- * @update 06/01/2015
+ * @update 06/24/2015
  * @changelog
- *      [06/01/2015] - Creation
+ *      [06/24/2015] - Creation
  */
 
-#ifndef _UTILS_BSP_TIMER_H
+#include "bsp-private.h"
+#include "bsp.h"
 
-#define _UTILS_BSP_TIMER_H
-/* Headers */
+BSP_PRIVATE(BSP_FD) fd_list[_BSP_MAX_OPEN_FILES];
+BSP_SPINLOCK fd_lock = BSP_SPINLOCK_INITIALIZER;
 
-/* Definations */
-
-/* Macros */
-
-/* Structs */
-typedef struct bsp_timer_t
+// Initialization
+BSP_DECLARE(int) bsp_fd_init()
 {
-    int                 fd;
-    ssize_t             loop;
-    uint64_t            count;
-    void                (* on_timer)(struct bsp_timer_t *);
-    void                (* on_complete)(struct bsp_timer_t *);
-    struct itimerspec   spec;
-    BSP_BOOLEAN         initialized;
-} BSP_TIMER;
+    bzero(fd_list, sizeof(BSP_FD) * _BSP_MAX_OPEN_FILES);
 
-/* Functions */
-/**
- * Initialize timer mempool
- *
- * @return int Status
- */
-BSP_DECLARE(int) bsp_timer_init();
+    return BSP_RTN_SUCCESS;
+}
 
-/**
- * Create a new timer
- *
- * @param BSP_EVENT_CONTAINER ev Event container
- * @param timespec initial Initval time of timer (From now to trigger time).
- * @param timespec interval Interval of timer loop
- * @param ssize_t loop Loop times. Negative for endless loop
- *
- * @returm p BSP_TIMER
- */
-BSP_DECLARE(BSP_TIMER *) bsp_new_timer(BSP_EVENT_CONTAINER *ec, struct timespec *initial, struct timespec *internal, ssize_t loop);
+// Register fd
+BSP_DECLARE(BSP_FD *) bsp_reg_fd(int fd, BSP_FD_TYPE type, void *ptr)
+{
+    if (fd < 0 || fd >= _BSP_MAX_OPEN_FILES)
+    {
+        return NULL;
+    }
 
-/**
- * Stop and remove a timer
- *
- * @param BSP_TIMER tmr Timer to remove
- *
- * @return int Status
- */
-BSP_DECLARE(int) bsp_del_timer(BSP_TIMER *tmr);
+    // Just overwrite
+    BSP_FD *target = &fd_list[fd];
+    bsp_spin_lock(&fd_lock);
+    bzero(target, sizeof(BSP_FD));
+    target->fd = fd;
+    target->type = type;
+    target->ptr = ptr;
+    target->reg = BSP_TRUE;
+    bsp_spin_unlock(&fd_lock);
 
-/**
- * Trigger a timer
- *
- * @param BSP_TIMER tmr TImer to tirgger
- *
- * @return int Status
- */
-BSP_DECLARE(int) bsp_trigger_timer(BSP_TIMER *tmr);
+    return target;
+}
 
-#endif  /* _UTILS_BSP_TIMER_H */
+// Unregister fd
+BSP_DECLARE(int) bsp_unreg_fd(int fd)
+{
+    if (fd < 0 || fd >= _BSP_MAX_OPEN_FILES)
+    {
+        return BSP_RTN_INVALID;
+    }
+
+    BSP_FD *target = &fd_list[fd];
+    bsp_spin_lock(&fd_lock);
+    bzero(target, sizeof(BSP_FD));
+    target->reg = BSP_FALSE;
+    bsp_spin_unlock(&fd_lock);
+
+    return BSP_RTN_SUCCESS;
+}
+
+// Get fd
+BSP_DECLARE(BSP_FD *) bsp_get_fd(int fd, BSP_FD_TYPE type)
+{
+    if (fd < 0 || fd >= _BSP_MAX_OPEN_FILES)
+    {
+        return NULL;
+    }
+
+    BSP_FD *f = &fd_list[fd];
+    if (BSP_FALSE == f->reg)
+    {
+        return NULL;
+    }
+
+    if (type == BSP_FD_ANY || type == f->type)
+    {
+        return f;
+    }
+
+    return NULL;
+}

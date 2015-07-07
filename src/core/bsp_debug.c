@@ -80,7 +80,7 @@ BSP_DECLARE(size_t) bsp_trace_message(BSP_TRACE_LEVEL level, const char *tag, co
 }
 
 // Set trace level
-BSP_DECLARE(void) bsp_set_trace_level(BSP_TRACE_LEVEL level)
+BSP_DECLARE(void) bsp_set_trace_level(int level)
 {
     trace_level = level;
 
@@ -96,7 +96,7 @@ BSP_DECLARE(void) bsp_set_trace_recipient(void (*recipient)(BSP_TRACE *))
 }
 
 // Set log level
-BSP_DECLARE(void) bsp_set_log_level(BSP_TRACE_LEVEL level)
+BSP_DECLARE(void) bsp_set_log_level(int level)
 {
     log_level = level;
 

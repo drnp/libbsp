@@ -77,27 +77,33 @@ typedef enum bsp_event_modify_method_e
 #define BSP_EVENT_REMOVE                BSP_EVENT_REMOVE
 } BSP_EVENT_MODIFY_METHOD;
 
+#define BSP_EVENT_QUEUE_LENGTH          1024
+
 /* Macros */
 
 /* Structs */
 #if defined(EVENT_USE_EPOLL)
 // {{{ Epoll
 #include <sys/epoll.h>
-typedef struct bsp_event_epoll_t
+#include <sys/timerfd.h>
+#include <sys/eventfd.h>
+struct bsp_event_container_t
 {
     int                 epoll_fd;
     int                 notify_fd;
-    struct epoll_event  *event_list;
-} BSP_EVENT_CONTAINER;
+    struct epoll_event  event_queue[BSP_EVENT_QUEUE_LENGTH];
+    int                 active_total;
+    int                 active_curr;
+};
 // }}} ~Epoll
 #elif defined(EVENT_USE_KQUEUE)
 // {{{ Kqueue
 #include <sys/event.h>
-typedef struct bsp_event_kqueue_t
+struct bsp_event_container_t
 {
     int                 kqueue_fd;
-    struct kqueue       *event_list;
-} BSP_EVENT_CONTAINER;
+    struct kqueue       event_queue[BSP_EVENT_QUEUE_LENGTH];
+};
 // }}} ~Kqueue
 #else
 // {{{ Select
@@ -105,35 +111,14 @@ typedef struct bsp_event_kqueue_t
 #ifndef FD_SETSIZE
     #define FD_SETSIZE  1024
 #endif
-typedef struct bsp_event_select_t
+struct bsp_event_container_t
 {
     fd_set              *fdset;
-} BSP_EVENT_CONTAINER;
+};
 // }}} ~Select
 #endif
 
-union _event_data_u
-{
-    uint64_t            buff;
-    uint64_t            timer;
-    void                *ptr;
-};
-
-typedef struct bsp_event_data_t
-{
-    int                 fd;
-    BSP_FD_TYPE         fd_type;
-    int                 events;
-    union _event_data_u associate;
-    BSP_EVENT_CONTAINER *container;
-} BSP_EVENT_DATA;
-
-typedef struct bsp_event_t
-{
-    int                 events;
-    struct itimerspec   timer_spec;
-    BSP_EVENT_DATA      data;
-} BSP_EVENT;
+typedef struct bsp_event_spec_t         BSP_EVENT_SPEC;
 
 /* Functions */
 /**
@@ -169,6 +154,15 @@ BSP_DECLARE(int) bsp_del_event_container(BSP_EVENT_CONTAINER *ec);
 BSP_DECLARE(int) bsp_poke_event_container(BSP_EVENT_CONTAINER *ec);
 
 /**
+ * Set (Add or modify) an event by given fd
+ *
+ * @param int fd File descriptor
+ * 
+ * @return int Status
+ */
+BSP_DECLARE(int) bsp_set_event(int fd);
+
+/**
  * Add an event to container
  *
  * @param BSP_EVENT_CONTAINER ec Target container
@@ -176,7 +170,7 @@ BSP_DECLARE(int) bsp_poke_event_container(BSP_EVENT_CONTAINER *ec);
  *
  * @return int status
  */
-BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev);
+//BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev);
 
 /**
  * Modify an event from container
@@ -186,17 +180,16 @@ BSP_DECLARE(int) bsp_add_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev);
  *
  * @return int status
  */
-BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_MODIFY_METHOD method, BSP_EVENT *ev);
+//BSP_DECLARE(int) bsp_mod_event(BSP_EVENT_MODIFY_METHOD method, BSP_EVENT *ev);
 
 /**
- * Remove an event from container
+ * Remove an event from container by given fd
  *
- * @param BSP_EVENT_CONTAINER ec Target container
- * @param BSP_EVENT ev Event to delete
+ * @param int fd File descriptor
  *
  * @return int status
  */
-BSP_DECLARE(int) bsp_del_event(BSP_EVENT *ev);
+BSP_DECLARE(int) bsp_del_event(int fdv);
 
 /**
  * Create a timer in event
@@ -212,11 +205,10 @@ BSP_DECLARE(int) bsp_wait_events(BSP_EVENT_CONTAINER *ec);
  * Get appointed active event from container's event queue
  *
  * @param BSP_EVENT_CONTAINER ec Target container
- * @param BSP_EVENT ev Event struct to fill
  * @param int idx Index of queue, must less than _BSP_MAX_EVENTS
  *
- * @return int status
+ * @return int fd
  */
-BSP_DECLARE(int) bsp_get_active_event(BSP_EVENT_CONTAINER *ec, BSP_EVENT *ev, int idx);
+BSP_DECLARE(BSP_FD *) bsp_get_active_fd(BSP_EVENT_CONTAINER *ec);
 
 #endif  /* _CORE_BSP_EVENT_H */
