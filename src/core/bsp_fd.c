@@ -93,7 +93,7 @@ BSP_DECLARE(int) bsp_unreg_fd(int fd)
 }
 
 // Get fd
-BSP_DECLARE(BSP_FD *) bsp_get_fd(int fd, BSP_FD_TYPE type)
+BSP_DECLARE(BSP_FD *) bsp_get_fd(int fd, int type)
 {
     if (fd < 0 || fd >= _BSP_MAX_OPEN_FILES)
     {
@@ -106,10 +106,37 @@ BSP_DECLARE(BSP_FD *) bsp_get_fd(int fd, BSP_FD_TYPE type)
         return NULL;
     }
 
-    if (type == BSP_FD_ANY || type == f->type)
+    if (type == BSP_FD_ANY || type & f->type)
     {
         return f;
     }
 
     return NULL;
+}
+
+// Bind addition
+BSP_DECLARE(int) bsp_fd_addition_bind(BSP_FD *f, int idx, void *bind)
+{
+    if (!f || idx < 0 || idx >= BSP_FD_ADDITIONS)
+    {
+        return BSP_RTN_INVALID;
+    }
+
+    f->additions[idx] = bind;
+
+    return BSP_RTN_SUCCESS;
+}
+
+// Unbind addition
+BSP_DECLARE(void *) bsp_fd_addition_unbind(BSP_FD *f, int idx)
+{
+    if (!f || idx < 0 || idx >= BSP_FD_ADDITIONS)
+    {
+        return NULL;
+    }
+
+    void *ptr = f->additions[idx];
+    f->additions[idx] = NULL;
+
+    return ptr;
 }

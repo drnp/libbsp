@@ -125,7 +125,7 @@ BSP_DECLARE(int) bsp_object_init();
  *
  * @return p BSP_OBJECT
  */
-BSP_DECLARE(BSP_OBJECT *) bsp_new_object();
+BSP_DECLARE(BSP_OBJECT *) bsp_new_object(BSP_OBJECT_TYPE type);
 
 /**
  * Delete an object

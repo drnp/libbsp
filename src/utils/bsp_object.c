@@ -70,13 +70,14 @@ BSP_DECLARE(int) bsp_object_init()
 }
 
 // GEnerate a new object
-BSP_DECLARE(BSP_OBJECT *) bsp_new_object()
+BSP_DECLARE(BSP_OBJECT *) bsp_new_object(BSP_OBJECT_TYPE type)
 {
     BSP_OBJECT *obj = bsp_mempool_alloc(mp_object);
     if (obj)
     {
         bzero(obj, sizeof(BSP_OBJECT));
         bsp_spin_init(&obj->lock);
+        obj->type = type;
     }
 
     return obj;

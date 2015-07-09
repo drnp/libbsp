@@ -141,7 +141,7 @@ BSP_PRIVATE(void) _proc_signals()
 BSP_DECLARE(int) bsp_init()
 {
     bzero(&options, sizeof(BSP_BOOTSTRAP_OPTIONS));
-    bsp_event_init();
+    bsp_fd_init();
     if ((BSP_RTN_SUCCESS != bsp_thread_init()) | 
         (BSP_RTN_SUCCESS != bsp_buffer_init()) | 
         (BSP_RTN_SUCCESS != bsp_string_init()) | 

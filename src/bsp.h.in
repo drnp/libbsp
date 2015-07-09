@@ -44,7 +44,7 @@
 #define _GNU_SOURCE
 
 // eneral
-#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150616-dev"
+#define BSP_LIB_VERSION                 "BS.Play runtime library (BlackTail)-20150707-dev"
 #define BSP_PACKAGE_NAME                "BSP::BlackTail"
 #define BSP_DECLARE(type)               type
 #define BSP_PRIVATE(type)               static type
@@ -152,66 +152,83 @@ typedef struct bsp_event_spec_t
 // File descriptor type
 typedef enum bsp_fd_type_e
 {
+    // General
     BSP_FD_ANY          = 0x0, 
 #define BSP_FD_ANY                      BSP_FD_ANY
-    BSP_FD_GENERAL      = 0x1, 
+    BSP_FD_GENERAL      = 0xFFFFFF, 
 #define BSP_FD_GENERAL                  BSP_FD_GENERAL
-    BSP_FD_PIPE         = 0x2, 
+    BSP_FD_PIPE         = 0x1, 
 #define BSP_FD_PIPE                     BSP_FD_PIPE
-    BSP_FD_EPOLL        = 0x3, 
+    BSP_FD_EPOLL        = 0x2, 
 #define BSP_FD_EPOLL                    BSP_FD_EPOLL
     BSP_FD_KQUEUE       = 0x4, 
 #define BSP_FD_KQUEUE                   BSP_FD_KQUEUE
-    BSP_FD_EVENT        = 0x11, 
+    BSP_FD_EVENT        = 0x8, 
 #define BSP_FD_EVENT                    BSP_FD_EVENT
-    BSP_FD_SIGNAL       = 0x12, 
+    BSP_FD_SIGNAL       = 0x10, 
 #define BSP_FD_SIGNAL                   BSP_FD_SIGNAL
-    BSP_FD_TIMER        = 0x13, 
+    BSP_FD_TIMER        = 0x20, 
 #define BSP_FD_TIMER                    BSP_FD_TIMER
+
+    // Socket
+    BSP_FD_SOCKET_GENERAL
+                        = 0x80, 
+#define BSP_FD_SOCKET_GENERAL           BSP_FD_SOCKET_GENERAL
+
     BSP_FD_SOCKET_SERVER_TCP
-                        = 0x21, 
+                        = 0x100, 
 #define BSP_FD_SOCKET_SERVER_TCP        BSP_FD_SOCKET_SERVER_TCP
     BSP_FD_SOCKET_SERVER_UDP
-                        = 0x22, 
+                        = 0x200, 
 #define BSP_FD_SOCKET_SERVER_UDP        BSP_FD_SOCKET_SERVER_UDP
     BSP_FD_SOCKET_SERVER_SCTP
-                        = 0x23, 
+                        = 0x400, 
 #define BSP_FD_SOCKET_SERVER_SCPT       BSP_FD_SOCKET_SERVER_SCTP
     BSP_FD_SOCKET_SERVER_LOCAL
-                        = 0x24, 
+                        = 0x800, 
 #define BSP_FD_SOCKET_SERVER_LOCAL      BSP_FD_SOCKET_SERVER_LOCAL
+    BSP_FD_SOCKET_SERVER
+                        = 0xF00, 
+#define BSP_FD_SOCKET_SERVER            BSP_FD_SOCKET_SERVER
+
     BSP_FD_SOCKET_CLIENT_TCP
-                        = 0x25, 
+                        = 0x1000, 
 #define BSP_FD_SOCKET_CLIENT_TCP        BSP_FD_SOCKET_CLIENT_TCP
     BSP_FD_SOCKET_CLIENT_UDP
-                        = 0x26, 
+                        = 0x2000, 
 #define BSP_FD_SOCKET_CLIENT_UDP        BSP_FD_SOCKET_CLIENT_UDP
     BSP_FD_SOCKET_CLIENT_SCTP
-                        = 0x27, 
+                        = 0x4000, 
 #define BSP_FD_SOCKET_CLIENT_SCTP       BSP_FD_SOCKET_CLIENT_SCTP
     BSP_FD_SOCKET_CLIENT_LOCAL
-                        = 0x28, 
+                        = 0x8000, 
 #define BSP_FD_SOCKET_CLIENT_LOCAL      BSP_FD_SOCKET_CLIENT_LOCAL
+    BSP_FD_SOCKET_CLIENT
+                        = 0xF000, 
+#define BSP_FD_SOCKET_CLIENT            BSP_FD_SOCKET_CLIENT
+
     BSP_FD_SOCKET_CONNECTOR_TCP
-                        = 0x29, 
+                        = 0x10000, 
 #define BSP_FD_SOCKET_CONNECTOR_TCP     BSP_FD_SOCKET_CONNECTOR_TCP
     BSP_FD_SOCKET_CONNECTOR_UDP
-                        = 0x2A, 
+                        = 0x20000, 
 #define BSP_FD_SOCKET_CONNECTOR_UDP     BSP_FD_SOCKET_CONNECTOR_UDP
     BSP_FD_SOCKET_CONNECTOR_SCTP
-                        = 0x2B, 
+                        = 0x40000, 
 #define BSP_FD_SOCKET_CONNECTOR_SCTP    BSP_FD_SOCKET_CONNECTOR_SCTP
     BSP_FD_SOCKET_CONNECTOR_LOCAL
-                        = 0x2C, 
+                        = 0x80000, 
 #define BSP_FD_SOCKET_CONNECTOR_LOCAL   BSP_FD_SOCKET_CONNECTOR_LOCAL
-    BSP_FD_SOCKET_GENERAL
-                        = 0x2F, 
-#define BSP_FD_SOCKET_GENERAL           BSP_FD_SOCKET_GENERAL
-    BSP_FD_SHM          = 0xF1, 
+    BSP_FD_SOCKET_CONNECTOR
+                        = 0xF0000, 
+#define BSP_FD_SOCKET_CONNECTOR         BSP_FD_SOCKET_CONNECTOR
+
+    // Other
+    BSP_FD_SHM          = 0x100000, 
 #define BSP_FD_SHM                      BSP_FD_SHM
-    BSP_FD_EXIT         = 0xFE, 
+    BSP_FD_EXIT         = 0x200000, 
 #define BSP_FD_EXIT                     BSP_FD_EXIT
-    BSP_FD_UNKNOWN      = 0xFF
+    BSP_FD_UNKNOWN      = 0x400000
 #define BSP_FD_UNKNOWN                  BSP_FD_UNKNOWN
 } BSP_FD_TYPE;
 

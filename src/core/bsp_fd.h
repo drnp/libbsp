@@ -90,6 +90,6 @@ BSP_DECLARE(int) bsp_unreg_fd(int fd);
  *
  * @return p BSP_FD
  */
-BSP_DECLARE(BSP_FD *) bsp_get_fd(int fd, BSP_FD_TYPE type);
+BSP_DECLARE(BSP_FD *) bsp_get_fd(int fd, int type);
 
 #endif  /* _CORE_BSP_FD_H */

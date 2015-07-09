@@ -199,7 +199,7 @@ BSP_DECLARE(int) bsp_del_event(int fdv);
  *
  * @return int Total event in queue
  */
-BSP_DECLARE(int) bsp_wait_events(BSP_EVENT_CONTAINER *ec);
+//BSP_DECLARE(int) bsp_wait_events(BSP_EVENT_CONTAINER *ec);
 
 /**
  * Get appointed active event from container's event queue
