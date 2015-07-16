@@ -95,7 +95,7 @@ BSP_DECLARE(BSP_TIMER *) bsp_new_timer(
     {
         return NULL;
     }
-#elif define(EVENT_USE_KQUEUE)
+#elif defined(EVENT_USE_KQUEUE)
     // TODO : Kqueue timer
     return NULL;
 #else
