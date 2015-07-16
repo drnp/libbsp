@@ -118,8 +118,6 @@ struct bsp_event_container_t
 // }}} ~Select
 #endif
 
-typedef struct bsp_event_spec_t         BSP_EVENT_SPEC;
-
 /* Functions */
 /**
  * Initialize event (fd) list
