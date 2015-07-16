@@ -96,7 +96,11 @@ BSP_DECLARE(BSP_TIMER *) bsp_new_timer(
         return NULL;
     }
 #elif define(EVENT_USE_KQUEUE)
+    // TODO : Kqueue timer
+    return NULL;
 #else
+    // TODO : Normal timer
+    return NULL;
 #endif
 
     BSP_TIMER *tmr = bsp_mempool_alloc(mp_timer);
