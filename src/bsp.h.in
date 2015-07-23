@@ -238,6 +238,7 @@ typedef struct bsp_fd_t
     enum bsp_fd_type_e  type;
     struct bsp_event_spec_t
                         event;
+    int                 state;
     void                *ptr;
     void                *additions[BSP_FD_ADDITIONS];
     BSP_BOOLEAN         reg;

@@ -50,8 +50,8 @@
 /* Macros */
 #define FD_ADD_GET(fd, idx)             ((fd && (idx >= 0) && (idx < BSP_FD_ADDITIONS)) ? fd->additions[idx] : NULL)
 #define FD_ADD_SET(fd, idx, ptr)        if (fd && (idx >= 0) && (idx < BSP_FD_ADDITIONS)) fd->additions[idx] = (void *) ptr
+#define FD_PTR(fd)                      (fd) ? (fd->ptr) : NULL
 #define FD_EVENT(fd)                    &fd->event
-#define FD_PTR(fd)                      fd->ptr
 
 /* Structs */
 

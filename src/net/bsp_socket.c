@@ -1053,7 +1053,7 @@ BSP_DECLARE(int) bsp_drive_socket(BSP_SOCKET *sck)
         }
     }
 
-        // Real close
+    // Real close
     if (sck->state & BSP_SOCK_STATE_CLOSE)
     {
         // Try close
