@@ -337,3 +337,56 @@ BSP_DECLARE(BSP_STRING *) bsp_string_base64_decode(BSP_STRING *input)
 
     return output;
 }
+
+// Character case
+BSP_DECLARE(size_t) bsp_str_toupper(BSP_STRING *input)
+{
+    if (!input)
+    {
+        return 0;
+    }
+
+    size_t count = 0;
+    size_t n;
+    unsigned char c;
+    bsp_spin_lock(&input->lock);
+    for (n = 0; n < input->buf->data_len; n ++)
+    {
+        c = (unsigned char) input->buf->data[n];
+        if (c >= 'a' && c <= 'z')
+        {
+            input->buf->data[n] = c - 32;
+            count ++;
+        }
+    }
+
+    bsp_spin_unlock(&input->lock);
+
+    return count;
+}
+
+BSP_DECLARE(size_t) bsp_str_tolower(BSP_STRING *input)
+{
+    if (!input)
+    {
+        return 0;
+    }
+
+    size_t count = 0;
+    size_t n;
+    unsigned char c;
+    bsp_spin_lock(&input->lock);
+    for (n = 0; n < input->buf->data_len; n ++)
+    {
+        c = (unsigned char) input->buf->data[n];
+        if (c >= 'A' && c <= 'Z')
+        {
+            input->buf->data[n] = c + 32;
+            count ++;
+        }
+    }
+
+    bsp_spin_unlock(&input->lock);
+
+    return count;
+}

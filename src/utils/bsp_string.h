@@ -59,6 +59,9 @@
 #define STR_ISCONST(str)                (BSP_TRUE == str->b->is_const)
 #define STR_ISEQUAL(str1, str2)         ((str1) && (str2) && (str1->buf->data_len) == str2->buf->data_len) && (0 == memcmp(str1->buf->data, str2->buf->data, str1->buf->data_len))
 
+#define STR_STDOUT(str)                 write(STDOUT_FILENO, str->buf->data, str->buf->data_len)
+#define STR_STDERR(str)                 write(STDERR_FILENO, str->buf->data, str->buf->data_len)
+
 // Alias
 #define bsp_string_append(str, data, len) \
                                         bsp_buffer_append(str->buf, data, len)
@@ -214,5 +217,23 @@ BSP_DECLARE(BSP_STRING *) bsp_string_base64_encode(BSP_STRING *input);
  * @return p BSP_STRING
  */
 BSP_DECLARE(BSP_STRING *) bsp_string_base64_decode(BSP_STRING *input);
+
+/**
+ * Transfer all lowercase letter to uppercase
+ *
+ * @param string input Input source
+ *
+ * @return size_t letter changed total
+ */
+BSP_DECLARE(size_t) bsp_str_toupper(BSP_STRING *input);
+
+/**
+ * Transfer all uppercase letter to lowercase
+ *
+ * @param string input Input source
+ *
+ * @return size_t letter changed total
+ */
+BSP_DECLARE(size_t) bsp_str_tolower(BSP_STRING *input);
 
 #endif  /* _UTILS_BSP_STRING_H */
