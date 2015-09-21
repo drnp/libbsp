@@ -132,6 +132,7 @@ BSP_DECLARE(void) bsp_del_string(BSP_STRING *str)
     if (str)
     {
         bsp_del_buffer(str->buf);
+        str->buf = NULL;
         bsp_mempool_free(mp_string, (void *) str);
     }
 

@@ -170,25 +170,25 @@ BSP_PRIVATE(void *) _process(void *arg)
             if (ev->triggered & BSP_EVENT_LOCAL_HUP)
             {
                 // Local hup
-                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d hup locally");
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "FD %d hup locally", f->fd);
                 sck = (BSP_SOCKET *) f->ptr;
-                sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
+                sck->state = BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
             }
 
             if (ev->triggered & BSP_EVENT_REMOTE_HUP)
             {
                 // Remote hup
-                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d hup remotely");
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "FD %d hup remotely", f->fd);
                 sck = (BSP_SOCKET *) f->ptr;
-                sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
+                sck->state = BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_CLOSE;
             }
 
             if (ev->triggered & BSP_EVENT_ERROR)
             {
                 // General error
-                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "Event %d triggered an error");
+                bsp_trace_message(BSP_TRACE_DEBUG, _tag_, "FD %d triggered an error", f->fd);
                 sck = (BSP_SOCKET *) f->ptr;
-                sck->state |= BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_PRECLOSE;
+                sck->state = BSP_SOCK_STATE_ERROR | BSP_SOCK_STATE_PRECLOSE;
             }
 
             if (sck)
